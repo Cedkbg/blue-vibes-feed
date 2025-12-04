@@ -16,10 +16,8 @@ interface Comment {
   text: string;
   parent_id: string | null;
   created_at: string;
-  profiles?: {
-    username: string | null;
-    avatar_url: string | null;
-  };
+  username?: string | null;
+  avatar_url?: string | null;
 }
 
 interface CommentsSectionProps {
@@ -43,21 +41,46 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
 
   const fetchComments = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch comments
+    const { data: commentsData, error } = await supabase
       .from("comments")
-      .select(`
-        *,
-        profiles!comments_user_id_fkey (username, avatar_url)
-      `)
+      .select("*")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
 
     if (error) {
       toast.error("Erreur lors du chargement des commentaires");
       console.error(error);
-    } else {
-      setComments(data || []);
+      setLoading(false);
+      return;
     }
+
+    if (!commentsData || commentsData.length === 0) {
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(commentsData.map(c => c.user_id))];
+    
+    // Fetch profiles for those users
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", userIds);
+
+    const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
+    // Merge comments with profile data
+    const commentsWithProfiles: Comment[] = commentsData.map(comment => ({
+      ...comment,
+      username: profilesMap.get(comment.user_id)?.username || null,
+      avatar_url: profilesMap.get(comment.user_id)?.avatar_url || null,
+    }));
+
+    setComments(commentsWithProfiles);
     setLoading(false);
   };
 
@@ -145,15 +168,15 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
                 <div key={comment.id} className="space-y-2">
                   <div className="flex gap-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={comment.profiles?.avatar_url || ""} />
+                      <AvatarImage src={comment.avatar_url || ""} />
                       <AvatarFallback>
-                        {comment.profiles?.username?.[0]?.toUpperCase() || "U"}
+                        {comment.username?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm">
-                          {comment.profiles?.username || "Utilisateur"}
+                          {comment.username || "Utilisateur"}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(comment.created_at), {
@@ -190,15 +213,15 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
                   {getReplies(comment.id).map((reply) => (
                     <div key={reply.id} className="ml-10 flex gap-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={reply.profiles?.avatar_url || ""} />
+                        <AvatarImage src={reply.avatar_url || ""} />
                         <AvatarFallback>
-                          {reply.profiles?.username?.[0]?.toUpperCase() || "U"}
+                          {reply.username?.[0]?.toUpperCase() || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs">
-                            {reply.profiles?.username || "Utilisateur"}
+                            {reply.username || "Utilisateur"}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(reply.created_at), {
