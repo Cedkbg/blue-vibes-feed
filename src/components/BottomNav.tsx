@@ -9,10 +9,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Video, label: "Video", path: "/video" },
+  { icon: Home, label: "Accueil", path: "/" },
+  { icon: Video, label: "Vidéos", path: "/video" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
-  { icon: User, label: "Profile", path: "/profile" },
+  { icon: User, label: "Profil", path: "/profile" },
 ];
 
 export const BottomNav = () => {

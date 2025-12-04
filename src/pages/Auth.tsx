@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,16 +7,49 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import cedliteLogo from "@/assets/cedlite-logo.png";
+import { z } from "zod";
+
+const emailSchema = z.string().email("Email invalide");
+const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/");
+    }
+  }, [user, authLoading, navigate]);
+
+  const validateForm = () => {
+    const newErrors: { email?: string; password?: string } = {};
+    
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      newErrors.email = emailResult.error.errors[0].message;
+    }
+    
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) {
+      newErrors.password = passwordResult.error.errors[0].message;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setLoading(true);
 
     try {
@@ -44,7 +77,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Inscription réussie !",
-          description: "Vous êtes maintenant connecté.",
+          description: "Bienvenue sur CedLite.",
         });
         navigate("/");
       }
@@ -61,6 +94,8 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setLoading(true);
 
     try {
@@ -78,7 +113,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Connexion réussie !",
-          description: "Bienvenue sur Cedlite.",
+          description: "Bienvenue sur CedLite.",
         });
         navigate("/");
       }
@@ -94,10 +129,11 @@ const Auth = () => {
   };
 
   const handleResetPassword = async () => {
-    if (!email) {
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
       toast({
         title: "Email requis",
-        description: "Veuillez entrer votre email pour réinitialiser le mot de passe.",
+        description: "Veuillez entrer un email valide.",
         variant: "destructive",
       });
       return;
@@ -132,16 +168,32 @@ const Auth = () => {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <img src={cedliteLogo} alt="CedLite" className="w-20 h-20" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Cedlite</CardTitle>
-          <CardDescription>Créez votre compte ou connectez-vous</CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="mx-auto">
+            <img src={cedliteLogo} alt="CedLite" className="w-20 h-20 mx-auto" />
+          </div>
+          <div>
+            <CardTitle className="text-3xl font-bold text-foreground">CedLite</CardTitle>
+            <CardDescription className="mt-2">Créez et partagez vos contenus</CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
               <TabsTrigger value="signup">Inscription</TabsTrigger>
             </TabsList>
@@ -155,9 +207,16 @@ const Auth = () => {
                     type="email"
                     placeholder="vous@exemple.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors({});
+                    }}
                     required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Mot de passe</Label>
@@ -166,17 +225,24 @@ const Auth = () => {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors({});
+                    }}
                     required
+                    className={errors.password ? "border-destructive" : ""}
                   />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full font-semibold" disabled={loading}>
                   {loading ? "Connexion..." : "Se connecter"}
                 </Button>
                 <Button
                   type="button"
                   variant="link"
-                  className="w-full"
+                  className="w-full text-muted-foreground"
                   onClick={handleResetPassword}
                   disabled={loading}
                 >
@@ -194,9 +260,16 @@ const Auth = () => {
                     type="email"
                     placeholder="vous@exemple.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors({});
+                    }}
                     required
+                    className={errors.email ? "border-destructive" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Mot de passe</Label>
@@ -205,12 +278,20 @@ const Auth = () => {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors({});
+                    }}
                     required
                     minLength={6}
+                    className={errors.password ? "border-destructive" : ""}
                   />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full font-semibold" disabled={loading}>
                   {loading ? "Inscription..." : "Créer un compte"}
                 </Button>
               </form>
