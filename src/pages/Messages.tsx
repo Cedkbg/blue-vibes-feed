@@ -1,6 +1,6 @@
 import { Search, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -8,7 +8,7 @@ const conversations = [
   {
     id: 1,
     name: "Emma Wilson",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+    initials: "EW",
     lastMessage: "Sure, sounds like a plan!",
     time: "2m",
     unread: 2,
@@ -16,7 +16,7 @@ const conversations = [
   {
     id: 2,
     name: "Michael Chen",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+    initials: "MC",
     lastMessage: "Thanks for sharing!",
     time: "1h",
     unread: 0,
@@ -24,7 +24,7 @@ const conversations = [
   {
     id: 3,
     name: "Sophie Martin",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
+    initials: "SM",
     lastMessage: "See you tomorrow 👋",
     time: "3h",
     unread: 0,
@@ -32,7 +32,7 @@ const conversations = [
   {
     id: 4,
     name: "David Kim",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
+    initials: "DK",
     lastMessage: "That's amazing!",
     time: "1d",
     unread: 1,
@@ -48,7 +48,7 @@ const Messages = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-foreground/60" />
           <Input 
-            placeholder="Search messages..."
+            placeholder="Rechercher..."
             className="pl-10 bg-primary-foreground/10 border-0 text-primary-foreground placeholder:text-primary-foreground/60"
           />
         </div>
@@ -62,9 +62,10 @@ const Messages = () => {
             className="w-full px-6 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors"
           >
             <div className="relative">
-              <Avatar className="w-14 h-14">
-                <AvatarImage src={conversation.avatar} alt={conversation.name} />
-                <AvatarFallback>{conversation.name[0]}</AvatarFallback>
+              <Avatar className="w-14 h-14 bg-primary/10">
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {conversation.initials}
+                </AvatarFallback>
               </Avatar>
               {conversation.unread > 0 && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
