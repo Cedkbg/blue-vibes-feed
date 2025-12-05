@@ -56,33 +56,45 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          birthdate: string | null
           created_at: string
+          display_name: string | null
           external_link: string | null
           id: string
           is_private: boolean
           language: string | null
+          location: string | null
+          profession: string | null
           updated_at: string
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          birthdate?: string | null
           created_at?: string
+          display_name?: string | null
           external_link?: string | null
           id: string
           is_private?: boolean
           language?: string | null
+          location?: string | null
+          profession?: string | null
           updated_at?: string
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          birthdate?: string | null
           created_at?: string
+          display_name?: string | null
           external_link?: string | null
           id?: string
           is_private?: boolean
           language?: string | null
+          location?: string | null
+          profession?: string | null
           updated_at?: string
           username?: string | null
         }

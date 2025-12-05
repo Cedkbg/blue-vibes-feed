@@ -21,6 +21,10 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [profession, setProfession] = useState("");
+  const [location, setLocation] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
@@ -54,10 +58,17 @@ const Auth = () => {
 
     try {
       const redirectUrl = `${window.location.origin}/`;
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: redirectUrl }
+        options: { 
+          emailRedirectTo: redirectUrl,
+          data: {
+            display_name: displayName,
+            profession,
+            location,
+          }
+        }
       });
 
       if (error) {
@@ -74,7 +85,22 @@ const Auth = () => {
             variant: "destructive",
           });
         }
-      } else {
+      } else if (data.user) {
+        // Update profile with additional info
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            display_name: displayName || null,
+            birthdate: birthdate || null,
+            profession: profession || null,
+            location: location || null,
+          })
+          .eq("id", data.user.id);
+
+        if (profileError) {
+          console.error("Profile update error:", profileError);
+        }
+
         toast({
           title: "Inscription réussie !",
           description: "Bienvenue sur CedLite.",
@@ -253,6 +279,48 @@ const Auth = () => {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="signup-name">Nom complet</Label>
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="Votre nom"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-birthdate">Date de naissance</Label>
+                    <Input
+                      id="signup-birthdate"
+                      type="date"
+                      value={birthdate}
+                      onChange={(e) => setBirthdate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-profession">Profession</Label>
+                    <Input
+                      id="signup-profession"
+                      type="text"
+                      placeholder="Chef, Designer..."
+                      value={profession}
+                      onChange={(e) => setProfession(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="signup-location">Ville</Label>
+                    <Input
+                      id="signup-location"
+                      type="text"
+                      placeholder="Paris, Lyon..."
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

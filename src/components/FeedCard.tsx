@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Share2, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Heart, MessageCircle, Share2, MoreHorizontal, MapPin, Briefcase } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface FeedCardProps {
@@ -9,6 +9,9 @@ interface FeedCardProps {
   user: {
     name: string;
     avatar: string;
+    age?: number;
+    profession?: string;
+    location?: string;
     isFollowing?: boolean;
   };
   image: string;
@@ -28,19 +31,21 @@ export const FeedCard = ({
 }: FeedCardProps) => {
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(initialIsLiked);
-  const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
   };
 
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
+  const formatCount = (count: number) => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
   };
 
   return (
-    <div className="relative bg-card rounded-3xl overflow-hidden shadow-lg mb-4">
+    <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4">
       {/* Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-muted">
         <img 
@@ -49,72 +54,104 @@ export const FeedCard = ({
           className="w-full h-full object-cover"
         />
         
-        {/* Caption Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-20">
-          <p className="text-white font-medium text-lg mb-1">{user.name}</p>
-          <p className="text-white/90 text-sm line-clamp-2">{caption}</p>
+        {/* User Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-16 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-white font-bold text-xl">
+              {user.name}{user.age ? `, ${user.age}` : ""}
+            </h3>
+          </div>
+          {(user.profession || user.location) && (
+            <div className="flex items-center gap-2 mt-1 text-white/90 text-sm">
+              {user.profession && (
+                <span className="flex items-center gap-1">
+                  <Briefcase className="w-3.5 h-3.5" />
+                  {user.profession}
+                </span>
+              )}
+              {user.profession && user.location && <span>-</span>}
+              {user.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {user.location}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="absolute right-4 bottom-20 flex flex-col gap-4">
+        {/* Action Buttons - Right Side */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-5">
+          {/* Avatar */}
+          <button className="transition-transform active:scale-90">
+            <Avatar className="w-11 h-11 ring-2 ring-white/50">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback>{user.name[0]}</AvatarFallback>
+            </Avatar>
+          </button>
+
+          {/* Like */}
           <button 
             onClick={handleLike}
             className="flex flex-col items-center gap-1 transition-transform active:scale-90"
           >
             <div className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors",
-              isLiked ? "bg-red-500" : "bg-white/20"
+              "w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors",
+              isLiked ? "bg-primary" : "bg-white/20"
             )}>
               <Heart 
                 className={cn(
-                  "w-6 h-6 transition-all",
+                  "w-5 h-5 transition-all",
                   isLiked ? "fill-white text-white" : "text-white"
                 )}
               />
             </div>
-            <span className="text-white text-xs font-semibold">
-              {likes >= 1000 ? `${(likes / 1000).toFixed(1)}k` : likes}
+            <span className="text-white text-xs font-semibold drop-shadow">
+              {formatCount(likes)}
             </span>
           </button>
 
+          {/* Comments */}
           <button className="flex flex-col items-center gap-1 transition-transform active:scale-90">
-            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-white" />
+            <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white text-xs font-semibold">{comments}</span>
+            <span className="text-white text-xs font-semibold drop-shadow">
+              {formatCount(comments)}
+            </span>
           </button>
 
+          {/* Share */}
           <button className="flex flex-col items-center gap-1 transition-transform active:scale-90">
-            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Share2 className="w-6 h-6 text-white" />
+            <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Share2 className="w-5 h-5 text-white" />
             </div>
           </button>
 
+          {/* More */}
           <button className="transition-transform active:scale-90">
-            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <MoreHorizontal className="w-6 h-6 text-white" />
+            <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <MoreHorizontal className="w-5 h-5 text-white" />
             </div>
           </button>
         </div>
+      </div>
 
-        {/* User Avatar with Follow Button */}
-        <div className="absolute top-4 left-4 flex items-center gap-3">
-          <Avatar className="w-10 h-10 ring-2 ring-white">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>{user.name[0]}</AvatarFallback>
-          </Avatar>
-          <Button
-            size="sm"
-            onClick={handleFollow}
-            className={cn(
-              "rounded-full px-6 font-semibold transition-all",
-              isFollowing 
-                ? "bg-white/20 text-white backdrop-blur-sm hover:bg-white/30" 
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            {isFollowing ? "Following" : "Follow"}
-          </Button>
+      {/* Match Button */}
+      <div className="p-3">
+        <Button className="w-full rounded-full font-bold text-base py-5">
+          Match!
+        </Button>
+      </div>
+
+      {/* Comment Input */}
+      <div className="px-3 pb-3 flex items-center gap-3">
+        <Avatar className="w-8 h-8">
+          <AvatarImage src={user.avatar} />
+          <AvatarFallback>U</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground">
+          Ajouter un commentaire...
         </div>
       </div>
     </div>
