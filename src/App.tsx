@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Settings from "./pages/Settings";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/video" element={<ProtectedRoute><Video /></ProtectedRoute>} />
           <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
           <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
