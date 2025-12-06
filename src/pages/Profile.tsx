@@ -8,9 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditProfileSheet } from "@/components/EditProfileSheet";
-import { SettingsSheet } from "@/components/SettingsSheet";
 import cedliteLogo from "@/assets/cedlite-logo.png";
 
 interface Profile {
@@ -27,7 +26,6 @@ const Profile = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
@@ -99,20 +97,14 @@ const Profile = () => {
           <h1 className="text-xl font-bold">Profil</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10">
-                <Settings className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:max-w-md">
-              <SettingsSheet 
-                profile={profile} 
-                onUpdate={fetchProfile}
-                onClose={() => setIsSettingsOpen(false)}
-              />
-            </SheetContent>
-          </Sheet>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => navigate("/settings")}
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
           <Button 
             size="icon" 
             variant="ghost" 
