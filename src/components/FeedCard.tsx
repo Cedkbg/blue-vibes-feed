@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
+import { useLikes } from "@/hooks/useLikes";
 
 interface FeedCardProps {
   id: string;
@@ -19,7 +20,6 @@ interface FeedCardProps {
   caption: string;
   likes: number;
   comments: number;
-  isLiked?: boolean;
 }
 
 export const FeedCard = ({ 
@@ -29,16 +29,9 @@ export const FeedCard = ({
   caption, 
   likes: initialLikes, 
   comments,
-  isLiked: initialIsLiked = false 
 }: FeedCardProps) => {
-  const [likes, setLikes] = useState(initialLikes);
-  const [isLiked, setIsLiked] = useState(initialIsLiked);
+  const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
   const [commentsOpen, setCommentsOpen] = useState(false);
-
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
-  };
 
   const formatCount = (count: number) => {
     if (count >= 1000) {
@@ -99,8 +92,9 @@ export const FeedCard = ({
 
               {/* Like */}
               <button 
-                onClick={handleLike}
-                className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+                onClick={toggleLike}
+                disabled={likesLoading}
+                className="flex flex-col items-center gap-1 transition-transform active:scale-90 disabled:opacity-50"
               >
                 <div className={cn(
                   "w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors",
@@ -114,7 +108,7 @@ export const FeedCard = ({
                   />
                 </div>
                 <span className="text-white text-xs font-semibold drop-shadow">
-                  {formatCount(likes)}
+                  {formatCount(likesCount)}
                 </span>
               </button>
 
@@ -181,8 +175,9 @@ export const FeedCard = ({
             {/* Actions */}
             <div className="flex items-center gap-4">
               <button 
-                onClick={handleLike}
-                className="flex items-center gap-2 transition-transform active:scale-90"
+                onClick={toggleLike}
+                disabled={likesLoading}
+                className="flex items-center gap-2 transition-transform active:scale-90 disabled:opacity-50"
               >
                 <Heart 
                   className={cn(
@@ -190,7 +185,7 @@ export const FeedCard = ({
                     isLiked ? "fill-primary text-primary" : "text-muted-foreground"
                   )}
                 />
-                <span className="text-sm text-muted-foreground">{formatCount(likes)}</span>
+                <span className="text-sm text-muted-foreground">{formatCount(likesCount)}</span>
               </button>
               <CommentsButton 
                 count={comments} 

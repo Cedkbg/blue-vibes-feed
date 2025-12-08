@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
+import Chat from "./pages/Chat";
 import Video from "./pages/Video";
 import Auth from "./pages/Auth";
 import CreatePost from "./pages/CreatePost";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/chat/:recipientId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/video" element={<ProtectedRoute><Video /></ProtectedRoute>} />
           <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
           <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
