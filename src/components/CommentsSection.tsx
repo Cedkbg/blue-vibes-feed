@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Send, Trash2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, X, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Comment {
   id: string;
@@ -17,32 +20,31 @@ interface Comment {
   parent_id: string | null;
   created_at: string;
   username?: string | null;
+  display_name?: string | null;
   avatar_url?: string | null;
+  replies?: Comment[];
 }
 
 interface CommentsSectionProps {
   postId: string;
   initialCount?: number;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionProps) => {
+export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange }: CommentsSectionProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [loading, setLoading] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [currentUserProfile, setCurrentUserProfile] = useState<{avatar_url: string | null, username: string | null}>({avatar_url: null, username: null});
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchComments();
-    }
-  }, [isOpen, postId]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
+    if (!postId) return;
     setLoading(true);
     
-    // Fetch comments
     const { data: commentsData, error } = await supabase
       .from("comments")
       .select("*")
@@ -62,27 +64,72 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
       return;
     }
 
-    // Get unique user IDs
     const userIds = [...new Set(commentsData.map(c => c.user_id))];
     
-    // Fetch profiles for those users
     const { data: profilesData } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url")
+      .select("id, username, display_name, avatar_url")
       .in("id", userIds);
 
     const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
 
-    // Merge comments with profile data
     const commentsWithProfiles: Comment[] = commentsData.map(comment => ({
       ...comment,
       username: profilesMap.get(comment.user_id)?.username || null,
+      display_name: profilesMap.get(comment.user_id)?.display_name || null,
       avatar_url: profilesMap.get(comment.user_id)?.avatar_url || null,
     }));
 
     setComments(commentsWithProfiles);
     setLoading(false);
-  };
+  }, [postId]);
+
+  // Fetch current user profile
+  useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url, username")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data) {
+        setCurrentUserProfile(data);
+      }
+    };
+    fetchCurrentUserProfile();
+  }, [user]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchComments();
+    }
+  }, [isOpen, fetchComments]);
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!isOpen || !postId) return;
+
+    const channel = supabase
+      .channel(`comments-${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments',
+          filter: `post_id=eq.${postId}`
+        },
+        () => {
+          fetchComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, postId, fetchComments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +139,7 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
       user_id: user.id,
       post_id: postId,
       text: newComment.trim(),
-      parent_id: replyTo,
+      parent_id: replyTo?.id || null,
     });
 
     if (error) {
@@ -101,8 +148,9 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
     } else {
       setNewComment("");
       setReplyTo(null);
-      fetchComments();
-      toast.success("Commentaire ajouté");
+      if (replyTo) {
+        setExpandedReplies(prev => new Set([...prev, replyTo.id]));
+      }
     }
   };
 
@@ -115,141 +163,244 @@ export const CommentsSection = ({ postId, initialCount = 0 }: CommentsSectionPro
     if (error) {
       toast.error("Erreur lors de la suppression");
       console.error(error);
-    } else {
-      fetchComments();
-      toast.success("Commentaire supprimé");
     }
   };
 
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(commentId)) {
+        newSet.delete(commentId);
+      } else {
+        newSet.add(commentId);
+      }
+      return newSet;
+    });
+  };
+
   const topLevelComments = comments.filter((c) => !c.parent_id);
-  const getReplies = (parentId: string) =>
-    comments.filter((c) => c.parent_id === parentId);
+  
+  const getReplies = (parentId: string): Comment[] => {
+    const directReplies = comments.filter((c) => c.parent_id === parentId);
+    return directReplies.map(reply => ({
+      ...reply,
+      replies: getReplies(reply.id)
+    }));
+  };
+
+  const getReplyCount = (commentId: string): number => {
+    const directReplies = comments.filter(c => c.parent_id === commentId);
+    return directReplies.reduce((acc, reply) => acc + 1 + getReplyCount(reply.id), 0);
+  };
+
+  const CommentItem = ({ comment, depth = 0 }: { comment: Comment; depth?: number }) => {
+    const replies = getReplies(comment.id);
+    const replyCount = getReplyCount(comment.id);
+    const isExpanded = expandedReplies.has(comment.id);
+    const displayName = comment.display_name || comment.username || "Utilisateur";
+    const maxDepth = 3;
+    const effectiveDepth = Math.min(depth, maxDepth);
+    
+    return (
+      <div className={cn("animate-in fade-in duration-200", effectiveDepth > 0 && "ml-8 border-l-2 border-muted pl-3")}>
+        <div className="flex gap-3 py-3">
+          <Avatar className={cn("shrink-0", depth > 0 ? "h-8 w-8" : "h-10 w-10")}>
+            <AvatarImage src={comment.avatar_url || ""} />
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {displayName[0]?.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm">{displayName}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(comment.created_at), {
+                  addSuffix: true,
+                  locale: fr,
+                })}
+              </span>
+            </div>
+            <p className="text-sm mt-1 break-words">{comment.text}</p>
+            <div className="flex items-center gap-3 mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+                onClick={() => setReplyTo(comment)}
+              >
+                <Reply className="h-3.5 w-3.5 mr-1" />
+                Répondre
+              </Button>
+              {user?.id === comment.user_id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => handleDelete(comment.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Show replies button */}
+        {replyCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-primary ml-12 mb-2"
+            onClick={() => toggleReplies(comment.id)}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                Masquer {replyCount} réponse{replyCount > 1 ? "s" : ""}
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                Voir {replyCount} réponse{replyCount > 1 ? "s" : ""}
+              </>
+            )}
+          </Button>
+        )}
+
+        {/* Nested Replies */}
+        {isExpanded && replies.length > 0 && (
+          <div className="space-y-0">
+            {replies.map((reply) => (
+              <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="w-full">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className="gap-2"
-      >
-        <MessageCircle className="h-4 w-4" />
-        <span>{comments.length || initialCount}</span>
-      </Button>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 flex flex-col">
+        <SheetHeader className="px-4 py-4 border-b shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-lg font-bold">
+              {comments.length} Commentaire{comments.length !== 1 ? "s" : ""}
+            </SheetTitle>
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </SheetHeader>
 
-      {isOpen && (
-        <div className="mt-4 space-y-4 border-t pt-4">
-          {/* Add Comment Form */}
-          {user && (
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.user_metadata?.avatar_url} />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <Textarea
-                placeholder={replyTo ? "Répondre..." : "Ajouter un commentaire..."}
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 min-h-[60px]"
-                maxLength={1000}
-              />
-              <Button type="submit" size="icon" disabled={!newComment.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          )}
-
-          {/* Comments List */}
+        {/* Comments List */}
+        <ScrollArea className="flex-1 px-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Chargement...</p>
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-pulse text-muted-foreground">Chargement...</div>
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <MessageCircle className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground">Aucun commentaire</p>
+              <p className="text-sm text-muted-foreground/70">Soyez le premier à commenter !</p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y">
               {topLevelComments.map((comment) => (
-                <div key={comment.id} className="space-y-2">
-                  <div className="flex gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={comment.avatar_url || ""} />
-                      <AvatarFallback>
-                        {comment.username?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">
-                          {comment.username || "Utilisateur"}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), {
-                            addSuffix: true,
-                            locale: fr,
-                          })}
-                        </span>
-                      </div>
-                      <p className="text-sm mt-1">{comment.text}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => setReplyTo(comment.id)}
-                        >
-                          Répondre
-                        </Button>
-                        {user?.id === comment.user_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs text-destructive"
-                            onClick={() => handleDelete(comment.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Nested Replies */}
-                  {getReplies(comment.id).map((reply) => (
-                    <div key={reply.id} className="ml-10 flex gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={reply.avatar_url || ""} />
-                        <AvatarFallback>
-                          {reply.username?.[0]?.toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-xs">
-                            {reply.username || "Utilisateur"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(reply.created_at), {
-                              addSuffix: true,
-                              locale: fr,
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-xs mt-1">{reply.text}</p>
-                        {user?.id === reply.user_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs text-destructive mt-1"
-                            onClick={() => handleDelete(reply.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <CommentItem key={comment.id} comment={comment} />
               ))}
             </div>
           )}
+        </ScrollArea>
+
+        {/* Reply indicator */}
+        {replyTo && (
+          <div className="px-4 py-2 bg-muted/50 border-t flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <CornerDownRight className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Répondre à</span>
+              <span className="font-medium">{replyTo.display_name || replyTo.username || "Utilisateur"}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setReplyTo(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Add Comment Form */}
+        {user ? (
+          <form onSubmit={handleSubmit} className="p-4 border-t bg-background shrink-0">
+            <div className="flex gap-3 items-end">
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src={currentUserProfile.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {currentUserProfile.username?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 relative">
+                <Textarea
+                  placeholder={replyTo ? `Répondre à ${replyTo.display_name || replyTo.username}...` : "Ajouter un commentaire..."}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="min-h-[44px] max-h-[120px] resize-none pr-12 rounded-2xl"
+                  maxLength={1000}
+                  rows={1}
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  disabled={!newComment.trim()}
+                  className="absolute right-1 bottom-1 h-8 w-8 rounded-full"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="p-4 border-t text-center text-sm text-muted-foreground">
+            Connectez-vous pour commenter
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+// Compact button for triggering comments
+interface CommentsButtonProps {
+  count: number;
+  onClick: () => void;
+  variant?: "overlay" | "inline";
+}
+
+export const CommentsButton = ({ count, onClick, variant = "inline" }: CommentsButtonProps) => {
+  const formatCount = (num: number) => {
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+    return num.toString();
+  };
+
+  if (variant === "overlay") {
+    return (
+      <button 
+        onClick={onClick}
+        className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+      >
+        <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+          <MessageCircle className="w-5 h-5 text-white" />
         </div>
-      )}
-    </div>
+        <span className="text-white text-xs font-semibold drop-shadow">
+          {formatCount(count)}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button onClick={onClick} className="flex items-center gap-2">
+      <MessageCircle className="w-5 h-5 text-muted-foreground" />
+      <span className="text-sm text-muted-foreground">{formatCount(count)}</span>
+    </button>
   );
 };
