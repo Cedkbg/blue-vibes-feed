@@ -1,54 +1,129 @@
+import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
+import { supabase } from "@/integrations/supabase/client";
 
-const videos = [
-  { id: 1, thumbnail: "https://images.unsplash.com/photo-1682687982360-3fbab65f9d50?w=400&h=600&fit=crop", views: "1.2M", duration: "0:45" },
-  { id: 2, thumbnail: "https://images.unsplash.com/photo-1682687981674-0927add86f2b?w=400&h=600&fit=crop", views: "890K", duration: "1:23" },
-  { id: 3, thumbnail: "https://images.unsplash.com/photo-1682687982501-1e58ab814714?w=400&h=600&fit=crop", views: "2.3M", duration: "0:38" },
-  { id: 4, thumbnail: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&h=600&fit=crop", views: "1.5M", duration: "1:05" },
-  { id: 5, thumbnail: "https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400&h=600&fit=crop", views: "670K", duration: "0:52" },
-  { id: 6, thumbnail: "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=400&h=600&fit=crop", views: "3.1M", duration: "1:15" },
-];
+interface VideoPost {
+  id: string;
+  media_url: string;
+  caption: string | null;
+  likes_count: number;
+  created_at: string;
+}
 
 const Video = () => {
+  const [videos, setVideos] = useState<VideoPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchVideos = async () => {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, media_url, caption, likes_count, created_at")
+      .eq("media_type", "video")
+      .not("media_url", "is", null)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setVideos(data);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchVideos();
+
+    // Subscribe to real-time updates for videos
+    const channel = supabase
+      .channel("videos-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "posts",
+        },
+        (payload) => {
+          // Only refetch if it's a video
+          if (
+            payload.eventType === "DELETE" ||
+            (payload.new as any)?.media_type === "video"
+          ) {
+            fetchVideos();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formatViews = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
-      <TopBar title="Videos" />
-      
+      <TopBar title="Vidéos" />
+
       <div className="px-4 py-6">
-        <div className="grid grid-cols-2 gap-3">
-          {videos.map((video) => (
-            <button
-              key={video.id}
-              className="relative aspect-[3/4] rounded-2xl overflow-hidden group"
-            >
-              <img 
-                src={video.thumbnail} 
-                alt={`Video ${video.id}`}
-                className="w-full h-full object-cover transition-transform group-hover:scale-110"
-              />
-              
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              
-              {/* Play Button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110">
-                  <Play className="w-6 h-6 text-white fill-white ml-1" />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p>Aucune vidéo pour le moment</p>
+            <p className="text-sm mt-2">Publiez votre première vidéo !</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {videos.map((video) => (
+              <button
+                key={video.id}
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden group bg-muted"
+              >
+                <video
+                  src={video.media_url}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                  muted
+                  playsInline
+                  onMouseEnter={(e) => e.currentTarget.play()}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
+                />
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+                {/* Play Button */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110">
+                    <Play className="w-6 h-6 text-white fill-white ml-1" />
+                  </div>
                 </div>
-              </div>
-              
-              {/* Video Info */}
-              <div className="absolute bottom-3 left-3 right-3">
-                <div className="flex items-center justify-between text-white text-xs font-semibold">
-                  <span>{video.views} views</span>
-                  <span className="bg-black/60 px-2 py-1 rounded">{video.duration}</span>
+
+                {/* Video Info */}
+                <div className="absolute bottom-3 left-3 right-3">
+                  <div className="flex items-center justify-between text-white text-xs font-semibold">
+                    <span>{formatViews(video.likes_count)} ❤️</span>
+                  </div>
+                  {video.caption && (
+                    <p className="text-white text-xs mt-1 line-clamp-2">
+                      {video.caption}
+                    </p>
+                  )}
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav />
