@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import cedliteLogo from "@/assets/cedlite-logo.png";
 
@@ -7,6 +8,8 @@ interface TopBarProps {
 }
 
 export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
+  const navigate = useNavigate();
+
   return (
     <header className="fixed top-0 left-0 right-0 bg-primary text-primary-foreground z-50 shadow-md">
       <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
@@ -19,6 +22,8 @@ export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
             size="icon" 
             variant="ghost" 
             className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => navigate("/search")}
+            aria-label="Rechercher"
           >
             <Search className="w-5 h-5" />
           </Button>

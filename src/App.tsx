@@ -13,6 +13,7 @@ import Video from "./pages/Video";
 import Auth from "./pages/Auth";
 import CreatePost from "./pages/CreatePost";
 import Interests from "./pages/Interests";
+import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
           <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
