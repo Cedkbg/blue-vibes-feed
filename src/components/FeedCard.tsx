@@ -17,6 +17,7 @@ interface FeedCardProps {
     isFollowing?: boolean;
   };
   image?: string;
+  mediaType?: string | null;
   caption: string;
   likes: number;
   comments: number;
@@ -26,12 +27,14 @@ export const FeedCard = ({
   id,
   user, 
   image, 
+  mediaType,
   caption, 
   likes: initialLikes, 
   comments,
 }: FeedCardProps) => {
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const isVideo = mediaType === "video";
 
   const formatCount = (count: number) => {
     if (count >= 1000) {
@@ -46,13 +49,24 @@ export const FeedCard = ({
     <>
       <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4">
         {hasImage ? (
-          /* Image Container */
+          /* Media Container */
           <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-            <img 
-              src={image} 
-              alt={caption}
-              className="w-full h-full object-cover"
-            />
+            {isVideo ? (
+              <video
+                src={image}
+                className="w-full h-full object-cover"
+                controls
+                playsInline
+                muted
+                loop
+              />
+            ) : (
+              <img 
+                src={image} 
+                alt={caption}
+                className="w-full h-full object-cover"
+              />
+            )}
             
             {/* User Info Overlay */}
             <div className="absolute bottom-0 left-0 right-16 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">

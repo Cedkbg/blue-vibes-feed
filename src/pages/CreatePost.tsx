@@ -1,59 +1,103 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image, Video, Send } from "lucide-react";
+import { ArrowLeft, Image, Video, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const CreatePost = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const [caption, setCaption] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video" | "text">("text");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (file: File, type: "image" | "video") => {
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux (max 50 MB)");
+      return;
+    }
+
+    setMediaFile(file);
+    setMediaType(type);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setMediaType("text");
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const uploadMedia = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user!.id}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw new Error("Erreur lors de l'upload du fichier");
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("media")
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  };
 
   const handleSubmit = async () => {
-    if (!caption.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez ajouter une légende à votre post",
-        variant: "destructive",
-      });
+    if (!caption.trim() && !mediaFile) {
+      toast.error("Veuillez ajouter du contenu à votre post");
       return;
     }
 
     if (!user) {
-      toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour publier",
-        variant: "destructive",
-      });
+      toast.error("Vous devez être connecté pour publier");
       return;
     }
 
     setIsLoading(true);
     try {
+      let mediaUrl: string | null = null;
+
+      if (mediaFile) {
+        mediaUrl = await uploadMedia(mediaFile);
+      }
+
       const { error } = await supabase.from("posts").insert({
         user_id: user.id,
-        caption: caption.trim(),
-        media_type: "text",
+        caption: caption.trim() || null,
+        media_type: mediaType,
+        media_url: mediaUrl,
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Succès",
-        description: "Votre post a été publié !",
-      });
+      toast.success("Votre post a été publié !");
       navigate("/");
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue",
-        variant: "destructive",
-      });
+      console.error("Post creation error:", error);
+      toast.error(error.message || "Une erreur est survenue");
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +120,7 @@ const CreatePost = () => {
           variant="ghost"
           size="icon"
           onClick={handleSubmit}
-          disabled={isLoading || !caption.trim()}
+          disabled={isLoading || (!caption.trim() && !mediaFile)}
           className="text-primary-foreground hover:bg-primary-foreground/10"
         >
           <Send className="w-6 h-6" />
@@ -85,31 +129,92 @@ const CreatePost = () => {
 
       {/* Content */}
       <div className="p-4 space-y-6">
+        {/* Media Preview */}
+        {mediaPreview && (
+          <div className="relative rounded-xl overflow-hidden bg-muted">
+            {mediaType === "video" ? (
+              <video
+                src={mediaPreview}
+                controls
+                className="w-full max-h-[400px] object-contain"
+              />
+            ) : (
+              <img
+                src={mediaPreview}
+                alt="Preview"
+                className="w-full max-h-[400px] object-contain"
+              />
+            )}
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute top-2 right-2 rounded-full"
+              onClick={clearMedia}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Caption input */}
         <div>
           <Textarea
             placeholder="Quoi de neuf ?"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="min-h-[200px] text-lg resize-none border-0 focus-visible:ring-0 bg-transparent"
+            className="min-h-[150px] text-lg resize-none border-0 focus-visible:ring-0 bg-transparent"
           />
         </div>
 
         {/* Media buttons */}
         <div className="flex gap-4 border-t border-border pt-4">
-          <Button variant="outline" className="flex-1 gap-2" disabled>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file, "image");
+            }}
+          />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file, "video");
+            }}
+          />
+          
+          <Button
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={isLoading}
+          >
             <Image className="w-5 h-5" />
             Photo
           </Button>
-          <Button variant="outline" className="flex-1 gap-2" disabled>
+          <Button
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={isLoading}
+          >
             <Video className="w-5 h-5" />
             Vidéo
           </Button>
         </div>
 
-        <p className="text-sm text-muted-foreground text-center">
-          Les photos et vidéos seront bientôt disponibles
-        </p>
+        {isLoading && (
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+            <span>Publication en cours...</span>
+          </div>
+        )}
       </div>
     </div>
   );
