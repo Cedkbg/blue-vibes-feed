@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Newspaper, BadgeCheck, TrendingUp, Globe, Clock, Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -33,13 +35,12 @@ interface Post {
 }
 
 const News = () => {
+  const { user } = useAuth();
+  const { createNotification } = useNotifications();
   const [verifiedProfiles, setVerifiedProfiles] = useState<Profile[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
 
   const fetchData = async () => {
     try {
@@ -76,10 +77,91 @@ const News = () => {
       }
 
       setVerifiedProfiles(profiles || []);
+
+      // Fetch current user's followings
+      if (user) {
+        const { data: follows } = await supabase
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", user.id);
+        
+        setFollowingIds(follows?.map(f => f.following_id) || []);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  // Subscribe to realtime updates for posts
+  useEffect(() => {
+    const channel = supabase
+      .channel("news-posts-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "posts",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleFollow = async (profileId: string) => {
+    if (!user) return;
+
+    try {
+      await supabase.from("follows").insert({
+        follower_id: user.id,
+        following_id: profileId,
+      });
+
+      // Send notification
+      await createNotification(profileId, "follow", "a commencé à vous suivre");
+
+      setFollowingIds(prev => [...prev, profileId]);
+    } catch (error) {
+      console.error("Error following:", error);
+    }
+  };
+
+  const handleUnfollow = async (profileId: string) => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", user.id)
+        .eq("following_id", profileId);
+
+      setFollowingIds(prev => prev.filter(id => id !== profileId));
+    } catch (error) {
+      console.error("Error unfollowing:", error);
     }
   };
 
@@ -248,41 +330,50 @@ const News = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                {verifiedProfiles.map((profile) => (
-                  <Card 
-                    key={profile.id} 
-                    className="group hover:shadow-medium transition-smooth overflow-hidden"
-                  >
-                    <CardContent className="p-4 text-center">
-                      <Avatar className="w-16 h-16 mx-auto mb-3 border-4 border-primary/20 group-hover:border-primary transition-colors">
-                        <AvatarImage src={profile.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                          {profile.display_name?.charAt(0) || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <span className="font-semibold text-foreground truncate">
-                          {profile.display_name || "Utilisateur"}
-                        </span>
-                        <BadgeCheck className="w-4 h-4 text-primary shrink-0" />
-                      </div>
-                      {profile.profession && (
-                        <Badge variant="secondary" className="text-xs mb-2">
-                          {profile.profession}
-                        </Badge>
-                      )}
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                        {profile.bio || "Pas de bio"}
-                      </p>
-                      <Button 
-                        size="sm" 
-                        className="w-full rounded-xl gradient-primary hover:opacity-90 transition-opacity"
-                      >
-                        Suivre
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                {verifiedProfiles.map((profile) => {
+                  const isFollowing = followingIds.includes(profile.id);
+                  const isCurrentUser = user?.id === profile.id;
+                  
+                  return (
+                    <Card 
+                      key={profile.id} 
+                      className="group hover:shadow-medium transition-smooth overflow-hidden"
+                    >
+                      <CardContent className="p-4 text-center">
+                        <Avatar className="w-16 h-16 mx-auto mb-3 border-4 border-primary/20 group-hover:border-primary transition-colors">
+                          <AvatarImage src={profile.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                            {profile.display_name?.charAt(0) || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <span className="font-semibold text-foreground truncate">
+                            {profile.display_name || "Utilisateur"}
+                          </span>
+                          <BadgeCheck className="w-4 h-4 text-primary shrink-0" />
+                        </div>
+                        {profile.profession && (
+                          <Badge variant="secondary" className="text-xs mb-2">
+                            {profile.profession}
+                          </Badge>
+                        )}
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                          {profile.bio || "Pas de bio"}
+                        </p>
+                        {!isCurrentUser && (
+                          <Button 
+                            size="sm" 
+                            variant={isFollowing ? "outline" : "default"}
+                            className={`w-full rounded-xl ${!isFollowing ? "gradient-primary hover:opacity-90" : ""} transition-opacity`}
+                            onClick={() => isFollowing ? handleUnfollow(profile.id) : handleFollow(profile.id)}
+                          >
+                            {isFollowing ? "Suivi" : "Suivre"}
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

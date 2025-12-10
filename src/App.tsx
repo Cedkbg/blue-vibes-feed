@@ -16,6 +16,7 @@ import Interests from "./pages/Interests";
 import Search from "./pages/Search";
 import News from "./pages/News";
 import Friends from "./pages/Friends";
+import LiveStream from "./pages/LiveStream";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
           <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
           <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+          <Route path="/live/:streamId?" element={<ProtectedRoute><LiveStream /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
