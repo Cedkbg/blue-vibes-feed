@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { NotificationsSheet } from "@/components/NotificationsSheet";
 import cedliteLogo from "@/assets/cedlite-logo.png";
 
 interface TopBarProps {
@@ -18,6 +19,7 @@ export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
           <h1 className="text-xl font-bold">{title}</h1>
         </div>
         <div className="flex gap-2">
+          <NotificationsSheet />
           <Button 
             size="icon" 
             variant="ghost" 

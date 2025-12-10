@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Radio, Video, UserPlus, Play, Eye, Clock, Sparkles } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useLiveStreams } from "@/hooks/useLiveStreams";
+import { StartLiveModal } from "@/components/StartLiveModal";
+import { Users, Radio, Video, UserPlus, Play, Eye, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Profile {
@@ -22,27 +23,15 @@ interface Profile {
   profession: string | null;
 }
 
-interface Follow {
-  id: string;
-  following_id: string;
-  follower_id: string;
-  created_at: string;
-  profiles?: Profile;
-}
-
 const Friends = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { createNotification } = useNotifications();
+  const { liveStreams, loading: streamsLoading, joinStream } = useLiveStreams();
   const [friends, setFriends] = useState<Profile[]>([]);
   const [suggestions, setSuggestions] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [liveStreams, setLiveStreams] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
+  const [showStartLive, setShowStartLive] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -62,6 +51,8 @@ const Friends = () => {
           .in("id", followingIds);
 
         setFriends(friendProfiles || []);
+      } else {
+        setFriends([]);
       }
 
       // Fetch suggestions (profiles not followed)
@@ -77,18 +68,54 @@ const Friends = () => {
       );
 
       setSuggestions(suggestedProfiles);
-
-      // Simulate live streams (would be real in production)
-      setLiveStreams([
-        { id: 1, title: "En direct maintenant", viewers: 127, isLive: true },
-        { id: 2, title: "Gaming session", viewers: 89, isLive: true },
-      ]);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  // Subscribe to realtime updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("friends-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "follows",
+          filter: `follower_id=eq.${user.id}`,
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const handleFollow = async (profileId: string) => {
     if (!user) return;
@@ -98,6 +125,9 @@ const Friends = () => {
         follower_id: user.id,
         following_id: profileId,
       });
+
+      // Send notification
+      await createNotification(profileId, "follow", "a commencé à vous suivre");
 
       // Move from suggestions to friends
       const profile = suggestions.find((s) => s.id === profileId);
@@ -110,9 +140,10 @@ const Friends = () => {
     }
   };
 
-  const startLive = () => {
-    // Future: Implement live streaming
-    navigate("/create-post");
+  const handleJoinStream = async (streamId: string) => {
+    await joinStream(streamId);
+    // Navigate to stream viewer (could be implemented as a modal or page)
+    navigate(`/live/${streamId}`);
   };
 
   return (
@@ -136,7 +167,7 @@ const Friends = () => {
               </div>
             </div>
             <Button 
-              onClick={startLive}
+              onClick={() => setShowStartLive(true)}
               className="gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground backdrop-blur-sm border border-primary-foreground/20"
             >
               <Radio className="w-4 h-4 animate-pulse" />
@@ -156,6 +187,7 @@ const Friends = () => {
               {liveStreams.map((stream) => (
                 <Card 
                   key={stream.id}
+                  onClick={() => handleJoinStream(stream.id)}
                   className="min-w-[200px] group cursor-pointer hover:shadow-medium transition-smooth overflow-hidden border-primary/20"
                 >
                   <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20">
@@ -168,11 +200,37 @@ const Friends = () => {
                     </Badge>
                     <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs">
                       <Eye className="w-3 h-3" />
-                      {stream.viewers}
+                      {stream.viewers_count}
                     </div>
                   </div>
                   <CardContent className="p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={stream.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs">
+                          {stream.profile?.display_name?.charAt(0) || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium truncate">
+                        {stream.profile?.display_name || "Utilisateur"}
+                      </span>
+                    </div>
                     <p className="font-medium text-foreground text-sm truncate">{stream.title}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {streamsLoading && (
+          <div className="mb-6">
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {[1, 2].map((i) => (
+                <Card key={i} className="min-w-[200px] animate-pulse">
+                  <div className="aspect-video bg-muted" />
+                  <CardContent className="p-3">
+                    <div className="h-4 bg-muted rounded w-3/4" />
                   </CardContent>
                 </Card>
               ))}
@@ -344,6 +402,12 @@ const Friends = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <StartLiveModal 
+        open={showStartLive} 
+        onOpenChange={setShowStartLive}
+        onStreamStarted={(id) => navigate(`/live/${id}`)}
+      />
 
       <BottomNav />
     </div>

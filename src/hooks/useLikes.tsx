@@ -75,6 +75,13 @@ export const useLikes = (postId: string, initialLikesCount: number) => {
     setIsLoading(true);
 
     try {
+      // Get post owner for notification
+      const { data: post } = await supabase
+        .from("posts")
+        .select("user_id")
+        .eq("id", postId)
+        .single();
+
       if (isLiked) {
         // Unlike
         await supabase
@@ -103,6 +110,17 @@ export const useLikes = (postId: string, initialLikesCount: number) => {
           .from("posts")
           .update({ likes_count: likesCount + 1 })
           .eq("id", postId);
+
+        // Send notification to post owner
+        if (post && post.user_id !== user.id) {
+          await supabase.from("notifications").insert({
+            user_id: post.user_id,
+            type: "like",
+            content: "a aimé votre publication",
+            from_user_id: user.id,
+            post_id: postId,
+          });
+        }
 
         setIsLiked(true);
         setLikesCount((prev) => prev + 1);

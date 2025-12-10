@@ -147,6 +147,39 @@ export type Database = {
           },
         ]
       }
+      live_streams: {
+        Row: {
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_live: boolean
+          started_at: string
+          title: string
+          user_id: string
+          viewers_count: number
+        }
+        Insert: {
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          started_at?: string
+          title: string
+          user_id: string
+          viewers_count?: number
+        }
+        Update: {
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          started_at?: string
+          title?: string
+          user_id?: string
+          viewers_count?: number
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -171,6 +204,39 @@ export type Database = {
           is_read?: boolean
           receiver_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          from_user_id: string | null
+          id: string
+          is_read: boolean
+          post_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean
+          post_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean
+          post_id?: string | null
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
