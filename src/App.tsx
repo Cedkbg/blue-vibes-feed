@@ -14,6 +14,8 @@ import Auth from "./pages/Auth";
 import CreatePost from "./pages/CreatePost";
 import Interests from "./pages/Interests";
 import Search from "./pages/Search";
+import News from "./pages/News";
+import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+          <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+          <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
