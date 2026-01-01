@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Heart, Share2, MoreHorizontal, MapPin, Briefcase } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
 import { useLikes } from "@/hooks/useLikes";
-
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 interface FeedCardProps {
   id: string;
   user: {
@@ -34,7 +40,38 @@ export const FeedCard = ({
 }: FeedCardProps) => {
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isVideo = mediaType === "video";
+  
+  const shouldTruncate = caption.length > 100;
+  const displayCaption = shouldTruncate && !isExpanded 
+    ? caption.slice(0, 100) + "..." 
+    : caption;
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/post/${id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Post de ${user.name}`,
+          text: caption.slice(0, 100),
+          url: shareUrl,
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          copyToClipboard(shareUrl);
+        }
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Lien copié dans le presse-papiers !");
+  };
 
   const formatCount = (count: number) => {
     if (count >= 1000) {
@@ -134,18 +171,36 @@ export const FeedCard = ({
               />
 
               {/* Share */}
-              <button className="flex flex-col items-center gap-1 transition-transform active:scale-90">
-                <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <button 
+                onClick={handleShare}
+                className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+              >
+                <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
                   <Share2 className="w-5 h-5 text-white" />
                 </div>
               </button>
 
               {/* More */}
-              <button className="transition-transform active:scale-90">
-                <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <MoreHorizontal className="w-5 h-5 text-white" />
-                </div>
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="transition-transform active:scale-90">
+                    <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+                      <MoreHorizontal className="w-5 h-5 text-white" />
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => copyToClipboard(`${window.location.origin}/post/${id}`)}>
+                    Copier le lien
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Signalement envoyé")}>
+                    Signaler
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Publication masquée")}>
+                    Masquer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         ) : (
@@ -184,7 +239,18 @@ export const FeedCard = ({
             </div>
 
             {/* Caption */}
-            <p className="text-foreground text-base mb-4">{caption}</p>
+            <div className="mb-4">
+              <p className="text-foreground text-base">{displayCaption}</p>
+              {shouldTruncate && (
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-primary text-sm font-medium mt-1 flex items-center gap-1"
+                >
+                  {isExpanded ? "Voir moins" : "Lire plus..."}
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")} />
+                </button>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-4">
@@ -206,12 +272,27 @@ export const FeedCard = ({
                 onClick={() => setCommentsOpen(true)} 
                 variant="inline"
               />
-              <button>
-                <Share2 className="w-5 h-5 text-muted-foreground" />
+              <button onClick={handleShare}>
+                <Share2 className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
               </button>
-              <button className="ml-auto">
-                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="ml-auto">
+                    <MoreHorizontal className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => copyToClipboard(`${window.location.origin}/post/${id}`)}>
+                    Copier le lien
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Signalement envoyé")}>
+                    Signaler
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.info("Publication masquée")}>
+                    Masquer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         )}

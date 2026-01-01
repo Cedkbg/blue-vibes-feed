@@ -10,8 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { useLiveStreams } from "@/hooks/useLiveStreams";
 import { useLiveChat } from "@/hooks/useLiveChat";
+import { useViewers } from "@/hooks/useViewers";
 import { LiveChatMessage } from "@/components/LiveChatMessage";
 import { LiveChatReactions } from "@/components/LiveChatReactions";
+import { ViewersList } from "@/components/ViewersList";
 import { Radio, Eye, Send, X, Users, Smile } from "lucide-react";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👏", "💯", "❤️", "🎉"];
@@ -28,6 +30,7 @@ const LiveStream = () => {
 
   const currentStreamId = streamId || myStream?.id;
   const { messages, sendMessage, sendReaction } = useLiveChat(currentStreamId);
+  const { viewers, viewerCount } = useViewers(currentStreamId);
 
   const stream = streamId 
     ? liveStreams.find(s => s.id === streamId) || myStream 
@@ -131,10 +134,7 @@ const LiveStream = () => {
                 />
                 LIVE
               </Badge>
-              <span className="text-white/70 text-xs flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                {stream.viewers_count}
-              </span>
+              <ViewersList viewers={viewers} viewerCount={viewerCount} />
             </div>
           </div>
         </div>
@@ -165,11 +165,38 @@ const LiveStream = () => {
 
       {/* Chat section */}
       <div className="bg-background border-t border-border p-4 max-h-[40vh]">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {stream.viewers_count} spectateur{stream.viewers_count > 1 ? "s" : ""}
-          </span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              <motion.span
+                key={viewerCount}
+                initial={{ scale: 1.5, color: "hsl(var(--primary))" }}
+                animate={{ scale: 1, color: "hsl(var(--muted-foreground))" }}
+                transition={{ duration: 0.3 }}
+              >
+                {viewerCount}
+              </motion.span>
+              {" "}spectateur{viewerCount > 1 ? "s" : ""} en ligne
+            </span>
+          </div>
+          
+          {/* Mini avatars of viewers */}
+          <div className="flex -space-x-2">
+            {viewers.slice(0, 5).map((viewer) => (
+              <Avatar key={viewer.id} className="w-6 h-6 border-2 border-background">
+                <AvatarImage src={viewer.avatar_url || undefined} />
+                <AvatarFallback className="text-xs bg-primary/10">
+                  {viewer.display_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {viewers.length > 5 && (
+              <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                +{viewers.length - 5}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
