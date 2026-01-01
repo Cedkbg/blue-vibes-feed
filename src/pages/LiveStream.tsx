@@ -1,30 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { TopBar } from "@/components/TopBar";
-import { BottomNav } from "@/components/BottomNav";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLiveStreams } from "@/hooks/useLiveStreams";
-import { Radio, Eye, Send, Heart, X, Users } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useLiveChat } from "@/hooks/useLiveChat";
+import { LiveChatMessage } from "@/components/LiveChatMessage";
+import { LiveChatReactions } from "@/components/LiveChatReactions";
+import { Radio, Eye, Send, X, Users, Smile } from "lucide-react";
 
-interface LiveComment {
-  id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  profile?: {
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
+const EMOJIS = ["😀", "😂", "😍", "🔥", "👏", "💯", "❤️", "🎉"];
 
 const LiveStream = () => {
   const { streamId } = useParams();
@@ -32,33 +22,50 @@ const LiveStream = () => {
   const { user } = useAuth();
   const { liveStreams, myStream, endStream, leaveStream } = useLiveStreams();
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState<LiveComment[]>([]);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [lastReaction, setLastReaction] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const stream = streamId ? liveStreams.find(s => s.id === streamId) || myStream : myStream;
+  const currentStreamId = streamId || myStream?.id;
+  const { messages, sendMessage, sendReaction } = useLiveChat(currentStreamId);
+
+  const stream = streamId 
+    ? liveStreams.find(s => s.id === streamId) || myStream 
+    : myStream;
   const isMyStream = stream?.user_id === user?.id;
 
+  // Auto-scroll on new messages
   useEffect(() => {
-    // Simulate live comments (in production, would use realtime)
-    const mockComments: LiveComment[] = [
-      { id: "1", user_id: "u1", content: "Super live !", created_at: new Date().toISOString(), profile: { display_name: "Marie", avatar_url: null } },
-      { id: "2", user_id: "u2", content: "🔥🔥🔥", created_at: new Date().toISOString(), profile: { display_name: "Paul", avatar_url: null } },
-    ];
-    setComments(mockComments);
-  }, []);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-  const handleSendComment = () => {
+  // Handle incoming reactions
+  useEffect(() => {
+    const latestReaction = messages
+      .filter(m => m.is_reaction)
+      .slice(-1)[0];
+    
+    if (latestReaction && latestReaction.reaction_type) {
+      setLastReaction(latestReaction.reaction_type);
+      setTimeout(() => setLastReaction(null), 100);
+    }
+  }, [messages]);
+
+  const handleSendComment = async () => {
     if (!comment.trim() || !user) return;
-
-    const newComment: LiveComment = {
-      id: Date.now().toString(),
-      user_id: user.id,
-      content: comment,
-      created_at: new Date().toISOString(),
-      profile: { display_name: "Vous", avatar_url: null },
-    };
-
-    setComments(prev => [...prev, newComment]);
+    await sendMessage(comment);
     setComment("");
+  };
+
+  const handleSendReaction = async (emoji: string) => {
+    await sendReaction(emoji);
+  };
+
+  const handleEmojiClick = (emoji: string) => {
+    setComment(prev => prev + emoji);
+    setShowEmojis(false);
   };
 
   const handleEndStream = async () => {
@@ -117,7 +124,11 @@ const LiveStream = () => {
             </p>
             <div className="flex items-center gap-2">
               <Badge className="bg-primary text-primary-foreground gap-1 text-xs">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <motion.span 
+                  className="w-2 h-2 bg-white rounded-full"
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
                 LIVE
               </Badge>
               <span className="text-white/70 text-xs flex items-center gap-1">
@@ -130,7 +141,12 @@ const LiveStream = () => {
 
         {/* Center content */}
         <div className="text-center text-white">
-          <Radio className="w-16 h-16 mx-auto mb-4 animate-pulse" />
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Radio className="w-16 h-16 mx-auto mb-4" />
+          </motion.div>
           <h2 className="text-xl font-bold mb-2">{stream.title}</h2>
           {stream.description && (
             <p className="text-white/70">{stream.description}</p>
@@ -147,7 +163,7 @@ const LiveStream = () => {
         </div>
       </div>
 
-      {/* Comments section */}
+      {/* Chat section */}
       <div className="bg-background border-t border-border p-4 max-h-[40vh]">
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-muted-foreground" />
@@ -156,46 +172,79 @@ const LiveStream = () => {
           </span>
         </div>
 
-        <ScrollArea className="h-32 mb-3">
-          <div className="space-y-2">
-            {comments.map((c) => (
-              <div key={c.id} className="flex items-start gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarImage src={c.profile?.avatar_url || undefined} />
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {c.profile?.display_name?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <span className="text-xs font-semibold text-foreground">
-                    {c.profile?.display_name}
-                  </span>
-                  <p className="text-sm text-foreground">{c.content}</p>
-                </div>
-              </div>
-            ))}
+        {/* Messages */}
+        <ScrollArea className="h-32 mb-3" ref={scrollRef}>
+          <div className="space-y-2 pr-4">
+            <AnimatePresence mode="popLayout">
+              {messages.filter(m => !m.is_reaction).map((msg) => (
+                <LiveChatMessage 
+                  key={msg.id} 
+                  message={msg} 
+                  isOwn={msg.user_id === user?.id}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2">
+        {/* Input area */}
+        <div className="flex gap-2 relative">
+          {/* Emoji picker */}
+          <AnimatePresence>
+            {showEmojis && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute bottom-full left-0 mb-2 bg-popover border border-border rounded-xl p-2 shadow-lg"
+              >
+                <div className="flex gap-1 flex-wrap max-w-[200px]">
+                  {EMOJIS.map((emoji) => (
+                    <motion.button
+                      key={emoji}
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleEmojiClick(emoji)}
+                      className="p-1.5 hover:bg-accent rounded transition-colors text-lg"
+                    >
+                      {emoji}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Button
+            size="icon"
+            variant="ghost"
+            className="rounded-xl flex-shrink-0"
+            onClick={() => setShowEmojis(!showEmojis)}
+          >
+            <Smile className="w-4 h-4" />
+          </Button>
+
           <Input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Écrivez un commentaire..."
+            placeholder="Écrivez un message..."
             className="flex-1 rounded-xl"
             onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
           />
+          
           <Button
             size="icon"
             onClick={handleSendComment}
             disabled={!comment.trim()}
-            className="rounded-xl gradient-primary"
+            className="rounded-xl gradient-primary flex-shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>
-          <Button size="icon" variant="outline" className="rounded-xl">
-            <Heart className="w-4 h-4" />
-          </Button>
+
+          <LiveChatReactions 
+            onSendReaction={handleSendReaction}
+            incomingReaction={lastReaction}
+          />
         </div>
       </div>
     </div>
