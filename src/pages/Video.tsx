@@ -89,25 +89,13 @@ const Video = () => {
               >
                 <video
                   src={video.media_url}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                  muted
+                  className="w-full h-full object-cover"
+                  controls
                   playsInline
-                  onMouseEnter={(e) => e.currentTarget.play()}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.pause();
-                    e.currentTarget.currentTime = 0;
-                  }}
                 />
 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-
-                {/* Play Button */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110">
-                    <Play className="w-6 h-6 text-white fill-white ml-1" />
-                  </div>
-                </div>
 
                 {/* Video Info */}
                 <div className="absolute bottom-3 left-3 right-3">

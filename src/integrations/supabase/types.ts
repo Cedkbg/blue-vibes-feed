@@ -324,6 +324,7 @@ export type Database = {
           external_link: string | null
           id: string
           is_private: boolean
+          is_verified: boolean
           language: string | null
           location: string | null
           profession: string | null
@@ -339,6 +340,7 @@ export type Database = {
           external_link?: string | null
           id: string
           is_private?: boolean
+          is_verified?: boolean
           language?: string | null
           location?: string | null
           profession?: string | null
@@ -354,6 +356,7 @@ export type Database = {
           external_link?: string | null
           id?: string
           is_private?: boolean
+          is_verified?: boolean
           language?: string | null
           location?: string | null
           profession?: string | null
