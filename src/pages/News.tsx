@@ -44,10 +44,11 @@ const News = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch profiles with most posts (simulating verified/popular accounts)
+      // Fetch only verified profiles
       const { data: profiles } = await supabase
         .from("profiles")
         .select("*")
+        .eq("is_verified", true)
         .not("display_name", "is", null)
         .limit(10);
 
@@ -274,7 +275,8 @@ const News = () => {
                               <video 
                                 src={post.media_url} 
                                 className="w-full h-40 object-cover"
-                                muted
+                                controls
+                                playsInline
                               />
                             ) : (
                               <img 

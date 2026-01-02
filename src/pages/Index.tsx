@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedCard } from "@/components/FeedCard";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
+import { StartLiveModal } from "@/components/StartLiveModal";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Post {
   id: string;
@@ -33,8 +35,10 @@ interface PostWithProfile extends Post {
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showStartLive, setShowStartLive] = useState(false);
 
   const fetchPosts = async () => {
     // Fetch posts
@@ -149,14 +153,32 @@ const Index = () => {
         )}
       </main>
 
-      {/* Floating action button */}
-      <Button
-        size="icon"
-        className="fixed bottom-24 right-4 w-14 h-14 rounded-full shadow-lg z-50"
-        onClick={() => navigate("/create-post")}
-      >
-        <Plus className="w-6 h-6" />
-      </Button>
+      {/* Floating action buttons */}
+      <div className="fixed bottom-24 right-4 flex flex-col gap-3 z-50">
+        {user && (
+          <Button
+            size="icon"
+            variant="outline"
+            className="w-14 h-14 rounded-full shadow-lg bg-card border-primary/20 hover:bg-primary hover:text-primary-foreground"
+            onClick={() => setShowStartLive(true)}
+          >
+            <Radio className="w-6 h-6" />
+          </Button>
+        )}
+        <Button
+          size="icon"
+          className="w-14 h-14 rounded-full shadow-lg gradient-primary"
+          onClick={() => navigate("/create-post")}
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
+      </div>
+
+      <StartLiveModal 
+        open={showStartLive} 
+        onOpenChange={setShowStartLive}
+        onStreamStarted={(id) => navigate(`/live/${id}`)}
+      />
 
       <BottomNav />
     </div>
