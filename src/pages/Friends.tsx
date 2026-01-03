@@ -295,6 +295,13 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="canals" className="space-y-4 animate-in fade-in-50">
+            {/* Create Canal Button */}
+            {user && (
+              <Button className="w-full gap-2 gradient-primary hover:opacity-90 mb-4">
+                <Plus className="w-4 h-4" />
+                Créer un canal
+              </Button>
+            )}
             <Card className="border-dashed">
               <CardContent className="p-8 text-center">
                 <Hash className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -309,6 +316,13 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="pages" className="space-y-4 animate-in fade-in-50">
+            {/* Create Page Button */}
+            {user && (
+              <Button className="w-full gap-2 gradient-primary hover:opacity-90 mb-4">
+                <Plus className="w-4 h-4" />
+                Créer une page
+              </Button>
+            )}
             <Card className="border-dashed">
               <CardContent className="p-8 text-center">
                 <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />

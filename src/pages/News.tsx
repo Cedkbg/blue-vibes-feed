@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { useWorldNews } from "@/hooks/useWorldNews";
 import { 
   Globe, Search, Clock, ExternalLink, RefreshCw, 
   Trophy, Landmark, Briefcase, Cpu, Film, Microscope, Heart,
-  Newspaper, Sparkles
+  Newspaper, Sparkles, Wifi
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -47,12 +47,24 @@ const News = () => {
     searchQuery,
     activeCategory,
     categories,
+    lastUpdate,
     handleSearch,
     handleCategoryChange,
     refetch,
   } = useWorldNews();
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [timeSinceUpdate, setTimeSinceUpdate] = useState("");
+
+  // Update time since last refresh
+  useEffect(() => {
+    const updateTime = () => {
+      setTimeSinceUpdate(formatDistanceToNow(lastUpdate, { addSuffix: true, locale: fr }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, [lastUpdate]);
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,24 +135,35 @@ const News = () => {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        {/* Refresh Button */}
+        {/* Real-time indicator & Refresh Button */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">
-              {articles.length} articles trouvés
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">
+                {articles.length} articles
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card px-2 py-1 rounded-full border">
+              <Wifi className="w-3 h-3 text-green-500 animate-pulse" />
+              <span>En direct</span>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refetch}
-            disabled={loading}
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:block">
+              Màj {timeSinceUpdate}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refetch}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Actualiser</span>
+            </Button>
+          </div>
         </div>
 
         {/* Error State */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface NewsArticle {
   id: string;
@@ -18,15 +18,20 @@ const GNEWS_API_KEY = "c37dd00dca40ccb10d74f67f1ba1f71b"; // Free tier API key
 
 const categories = ["general", "world", "nation", "business", "technology", "entertainment", "sports", "science", "health"];
 
+// Auto-refresh interval in milliseconds (30 seconds)
+const AUTO_REFRESH_INTERVAL = 30000;
+
 export const useWorldNews = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("general");
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchNews = useCallback(async (category: string, query?: string) => {
-    setLoading(true);
+  const fetchNews = useCallback(async (category: string, query?: string, silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -56,20 +61,39 @@ export const useWorldNews = () => {
           category: category,
         }));
         setArticles(formattedArticles);
+        setLastUpdate(new Date());
       }
     } catch (err) {
       console.error("Error fetching news:", err);
-      setError("Impossible de charger les actualités. Veuillez réessayer plus tard.");
-      // Fallback to mock data
-      setArticles(getMockArticles(category));
+      if (!silent) {
+        setError("Impossible de charger les actualités. Veuillez réessayer plus tard.");
+      }
+      // Fallback to mock data only on initial load
+      if (!silent) {
+        setArticles(getMockArticles(category));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
+  // Initial load and category change
   useEffect(() => {
     fetchNews(activeCategory, searchQuery);
   }, [activeCategory, fetchNews]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      fetchNews(activeCategory, searchQuery, true); // Silent refresh
+    }, AUTO_REFRESH_INTERVAL);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [activeCategory, searchQuery, fetchNews]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -92,6 +116,7 @@ export const useWorldNews = () => {
     searchQuery,
     activeCategory,
     categories,
+    lastUpdate,
     handleSearch,
     handleCategoryChange,
     refetch: () => fetchNews(activeCategory, searchQuery),

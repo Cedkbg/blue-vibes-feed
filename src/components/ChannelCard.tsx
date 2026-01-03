@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, BadgeCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ChannelCardProps {
   channel: {
@@ -13,6 +14,7 @@ interface ChannelCardProps {
     category: string | null;
     subscribers_count: number;
     is_verified: boolean;
+    user_id: string;
     profile?: {
       display_name: string | null;
       avatar_url: string | null;
@@ -29,6 +31,13 @@ export const ChannelCard = ({
   onSubscribe,
   onUnsubscribe,
 }: ChannelCardProps) => {
+  const navigate = useNavigate();
+
+  const handleSubscribersClick = () => {
+    // Navigate to channel owner's profile
+    navigate(`/profile/${channel.user_id}`);
+  };
+
   return (
     <Card className="group hover:shadow-medium transition-smooth overflow-hidden border-border/50">
       <CardContent className="p-4">
@@ -56,10 +65,13 @@ export const ChannelCard = ({
               </Badge>
             )}
             
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <button
+              onClick={handleSubscribersClick}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
               <Users className="w-3 h-3" />
               <span>{channel.subscribers_count.toLocaleString()} abonnés</span>
-            </div>
+            </button>
           </div>
 
           <Button
