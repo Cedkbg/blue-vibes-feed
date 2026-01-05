@@ -465,6 +465,38 @@ export type Database = {
         }
         Relationships: []
       }
+      reposts: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          original_post_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          original_post_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          original_post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposts_original_post_id_fkey"
+            columns: ["original_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           caption: string | null

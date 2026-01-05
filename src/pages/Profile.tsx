@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BottomNav } from "@/components/BottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useFollows } from "@/hooks/useFollows";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditProfileSheet } from "@/components/EditProfileSheet";
@@ -14,6 +15,7 @@ import cedliteLogo from "@/assets/cedlite-logo.png";
 
 interface Profile {
   username: string | null;
+  display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
   external_link: string | null;
@@ -21,12 +23,35 @@ interface Profile {
   language: string | null;
 }
 
+interface Post {
+  id: string;
+  media_url: string | null;
+  media_type: string | null;
+  likes_count: number;
+}
+
+interface FavoritePost {
+  id: string;
+  post_id: string;
+  post: Post;
+}
+
 const Profile = () => {
   const { user, loading } = useAuth();
+  const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [videos, setVideos] = useState<Post[]>([]);
+  const [favorites, setFavorites] = useState<Post[]>([]);
+  
+  // Determine if viewing own profile or someone else's
+  const viewingUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
+  
+  const { isFollowing, toggleFollow, isLoading: isFollowLoading, followersCount, followingCount } = useFollows(viewingUserId);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,18 +60,22 @@ const Profile = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (viewingUserId) {
       fetchProfile();
+      fetchPosts();
+      if (isOwnProfile) {
+        fetchFavorites();
+      }
     }
-  }, [user]);
+  }, [viewingUserId, isOwnProfile]);
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!viewingUserId) return;
     
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, bio, avatar_url, external_link, is_private, language")
-      .eq("id", user.id)
+      .select("username, display_name, bio, avatar_url, external_link, is_private, language")
+      .eq("id", viewingUserId)
       .maybeSingle();
 
     if (error) {
@@ -56,6 +85,42 @@ const Profile = () => {
       setProfile(data);
     }
     setLoadingProfile(false);
+  };
+
+  const fetchPosts = async () => {
+    if (!viewingUserId) return;
+
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, media_url, media_type, likes_count")
+      .eq("user_id", viewingUserId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setPosts(data.filter(p => p.media_type === "image" || !p.media_type));
+      setVideos(data.filter(p => p.media_type === "video"));
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("favorites")
+      .select(`
+        id,
+        post_id,
+        post:posts(id, media_url, media_type, likes_count)
+      `)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      const validFavorites = data
+        .filter((f: any) => f.post)
+        .map((f: any) => f.post as Post);
+      setFavorites(validFavorites);
+    }
   };
 
   const handleLogout = async () => {
@@ -68,14 +133,9 @@ const Profile = () => {
     }
   };
 
-  const userPosts = [
-    { id: 1, image: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&h=600&fit=crop", likes: "2.1k" },
-    { id: 2, image: "https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400&h=600&fit=crop", likes: "1.8k" },
-    { id: 3, image: "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=400&h=600&fit=crop", likes: "3.4k" },
-    { id: 4, image: "https://images.unsplash.com/photo-1682687221080-5cb261c645cb?w=400&h=600&fit=crop", likes: "1.2k" },
-    { id: 5, image: "https://images.unsplash.com/photo-1682687220199-d0124f48f95b?w=400&h=600&fit=crop", likes: "2.5k" },
-    { id: 6, image: "https://images.unsplash.com/photo-1682687220208-22d7a2543e88?w=400&h=600&fit=crop", likes: "1.9k" },
-  ];
+  const handleVideoClick = (postId: string) => {
+    navigate(`/video?id=${postId}`);
+  };
 
   if (loading || loadingProfile) {
     return (
@@ -93,27 +153,41 @@ const Profile = () => {
       {/* Header */}
       <header className="bg-primary text-primary-foreground px-4 py-4 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-2">
+          {!isOwnProfile && (
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <img src={cedliteLogo} alt="CedLite" className="w-8 h-8" />
-          <h1 className="text-xl font-bold">Profil</h1>
+          <h1 className="text-xl font-bold">
+            {isOwnProfile ? "Profil" : profile?.username || "Profil"}
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => navigate("/settings")}
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
+        {isOwnProfile && (
+          <div className="flex items-center gap-2">
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate("/settings")}
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        )}
       </header>
 
       {/* Profile Info */}
@@ -122,13 +196,13 @@ const Profile = () => {
           <Avatar className="w-24 h-24 ring-4 ring-primary/20">
             <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.username || "User"} />
             <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-              {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+              {profile?.username?.[0]?.toUpperCase() || profile?.display_name?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           
           <div className="flex-1 text-center sm:text-left">
             <h2 className="text-2xl font-bold mb-1">
-              {profile?.username || "Utilisateur"}
+              {profile?.display_name || profile?.username || "Utilisateur"}
             </h2>
             <p className="text-muted-foreground">@{profile?.username || "user"}</p>
             {profile?.is_private && (
@@ -142,15 +216,15 @@ const Profile = () => {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{posts.length + videos.length}</div>
             <div className="text-sm text-muted-foreground">Posts</div>
           </div>
           <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{followersCount}</div>
             <div className="text-sm text-muted-foreground">Abonnés</div>
           </div>
           <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{followingCount}</div>
             <div className="text-sm text-muted-foreground">Abonnements</div>
           </div>
         </div>
@@ -172,27 +246,49 @@ const Profile = () => {
           </a>
         )}
 
-        {/* Edit Profile Button */}
-        <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <SheetTrigger asChild>
-            <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-semibold">
-              Modifier le profil
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-            <EditProfileSheet 
-              profile={profile} 
-              userId={user?.id || ""} 
-              onUpdate={fetchProfile}
-              onClose={() => setIsEditOpen(false)}
-            />
-          </SheetContent>
-        </Sheet>
+        {/* Action Buttons */}
+        {isOwnProfile ? (
+          <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <SheetTrigger asChild>
+              <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl font-semibold">
+                Modifier le profil
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
+              <EditProfileSheet 
+                profile={profile} 
+                userId={user?.id || ""} 
+                onUpdate={() => {
+                  fetchProfile();
+                }}
+                onClose={() => setIsEditOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Button 
+            className={`w-full rounded-xl font-semibold ${isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
+            onClick={toggleFollow}
+            disabled={isFollowLoading}
+          >
+            {isFollowing ? (
+              <>
+                <UserCheck className="w-4 h-4 mr-2" />
+                Abonné
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4 mr-2" />
+                S'abonner
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Content Tabs */}
       <Tabs defaultValue="posts" className="px-4 sm:px-6">
-        <TabsList className="w-full grid grid-cols-2 mb-4">
+        <TabsList className={`w-full grid mb-4 ${isOwnProfile ? "grid-cols-3" : "grid-cols-2"}`}>
           <TabsTrigger value="posts" className="flex items-center gap-2">
             <Grid className="w-4 h-4" />
             Posts
@@ -201,22 +297,112 @@ const Profile = () => {
             <Video className="w-4 h-4" />
             Vidéos
           </TabsTrigger>
+          {isOwnProfile && (
+            <TabsTrigger value="favorites" className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4" />
+              Favoris
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="posts" className="mt-0">
-          <div className="text-center py-12 text-muted-foreground">
-            <Grid className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Aucun post pour le moment</p>
-            <p className="text-sm mt-2">Partagez votre premier contenu !</p>
-          </div>
+          {posts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Grid className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucun post pour le moment</p>
+              {isOwnProfile && <p className="text-sm mt-2">Partagez votre premier contenu !</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {posts.map((post) => (
+                <div 
+                  key={post.id} 
+                  className="aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
+                  onClick={() => handleVideoClick(post.id)}
+                >
+                  {post.media_url && (
+                    <img 
+                      src={post.media_url} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="videos">
-          <div className="text-center py-12 text-muted-foreground">
-            <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Aucune vidéo pour le moment</p>
-          </div>
+          {videos.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune vidéo pour le moment</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {videos.map((video) => (
+                <div 
+                  key={video.id} 
+                  className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
+                  onClick={() => handleVideoClick(video.id)}
+                >
+                  {video.media_url && (
+                    <video 
+                      src={video.media_url} 
+                      className="w-full h-full object-cover"
+                      muted
+                    />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <Video className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
+
+        {isOwnProfile && (
+          <TabsContent value="favorites">
+            {favorites.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Aucun favori pour le moment</p>
+                <p className="text-sm mt-2">Enregistrez des vidéos pour les retrouver ici !</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {favorites.map((fav) => (
+                  <div 
+                    key={fav.id} 
+                    className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
+                    onClick={() => handleVideoClick(fav.id)}
+                  >
+                    {fav.media_url && (
+                      fav.media_type === "video" ? (
+                        <video 
+                          src={fav.media_url} 
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                      ) : (
+                        <img 
+                          src={fav.media_url} 
+                          alt="" 
+                          className="w-full h-full object-cover"
+                        />
+                      )
+                    )}
+                    <div className="absolute top-2 right-2">
+                      <Bookmark className="w-4 h-4 text-white fill-white" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
 
       <BottomNav />

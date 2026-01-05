@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
 import { useLikes } from "@/hooks/useLikes";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 interface FeedCardProps {
   id: string;
+  userId: string;
   user: {
     name: string;
     avatar: string;
@@ -31,6 +33,7 @@ interface FeedCardProps {
 
 export const FeedCard = ({ 
   id,
+  userId,
   user, 
   image, 
   mediaType,
@@ -38,10 +41,15 @@ export const FeedCard = ({
   likes: initialLikes, 
   comments,
 }: FeedCardProps) => {
+  const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const isVideo = mediaType === "video";
+
+  const handleProfileClick = () => {
+    navigate(`/profile/${userId}`);
+  };
   
   const shouldTruncate = caption.length > 100;
   const displayCaption = shouldTruncate && !isExpanded 
@@ -107,11 +115,11 @@ export const FeedCard = ({
             
             {/* User Info Overlay */}
             <div className="absolute bottom-0 left-0 right-16 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-white font-bold text-xl">
+              <button onClick={handleProfileClick} className="flex items-baseline gap-2 text-left">
+                <h3 className="text-white font-bold text-xl hover:underline">
                   {user.name}{user.age ? `, ${user.age}` : ""}
                 </h3>
-              </div>
+              </button>
               {(user.profession || user.location) && (
                 <div className="flex items-center gap-2 mt-1 text-white/90 text-sm">
                   {user.profession && (
@@ -134,7 +142,7 @@ export const FeedCard = ({
             {/* Action Buttons - Right Side */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-5">
               {/* Avatar */}
-              <button className="transition-transform active:scale-90">
+              <button onClick={handleProfileClick} className="transition-transform active:scale-90">
                 <Avatar className="w-11 h-11 ring-2 ring-white/50">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback>{user.name[0]}</AvatarFallback>
@@ -208,16 +216,20 @@ export const FeedCard = ({
           <div className="p-4">
             {/* User Header */}
             <div className="flex items-center gap-3 mb-3">
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {user.name[0]}
-                </AvatarFallback>
-              </Avatar>
+              <button onClick={handleProfileClick}>
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {user.name[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
               <div className="flex-1">
-                <h3 className="font-bold">
-                  {user.name}{user.age ? `, ${user.age}` : ""}
-                </h3>
+                <button onClick={handleProfileClick} className="text-left">
+                  <h3 className="font-bold hover:underline">
+                    {user.name}{user.age ? `, ${user.age}` : ""}
+                  </h3>
+                </button>
                 {(user.profession || user.location) && (
                   <div className="flex items-center gap-2 text-muted-foreground text-xs">
                     {user.profession && (
