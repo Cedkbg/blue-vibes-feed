@@ -135,6 +135,7 @@ const Index = () => {
             <FeedCard
               key={post.id}
               id={post.id}
+              userId={post.user_id}
               user={{
                 name: post.profile?.display_name || post.profile?.username || "Utilisateur",
                 avatar: post.profile?.avatar_url || "",

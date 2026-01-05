@@ -2,16 +2,19 @@ import { useEffect, useState, useRef } from "react";
 import { 
   Play, Heart, MessageCircle, Share2, Volume2, VolumeX, Pause, 
   Bookmark, Download, MoreHorizontal, ChevronDown, ChevronUp,
-  Copy, Send, Link2
+  Copy, Send, Link2, Plus, Repeat2, Check
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useLikes } from "@/hooks/useLikes";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useFollows } from "@/hooks/useFollows";
+import { useReposts } from "@/hooks/useReposts";
 import { useAuth } from "@/hooks/useAuth";
 import { CommentsSection } from "@/components/CommentsSection";
 import { toast } from "sonner";
@@ -217,10 +220,15 @@ const VideoItem = ({
   const { user } = useAuth();
   const { isLiked, toggleLike } = useLikes(video.id, video.likes_count);
   const { isFavorited, toggleFavorite } = useFavorites(video.id);
+  const { isFollowing, toggleFollow, isLoading: isFollowLoading } = useFollows(video.user_id);
+  const { repostVideo, isLoading: isRepostLoading } = useReposts();
   const [localLikes, setLocalLikes] = useState(video.likes_count);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isRepostOpen, setIsRepostOpen] = useState(false);
+  const [repostComment, setRepostComment] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const isOwnVideo = user?.id === video.user_id;
 
   const handleLike = async () => {
     if (!user) {
@@ -312,18 +320,37 @@ const VideoItem = ({
 
         {/* Right side actions */}
         <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4">
-          {/* Profile avatar */}
-          <button
-            onClick={() => onProfileClick(video.user_id)}
-            className="relative"
-          >
-            <Avatar className="w-12 h-12 border-2 border-white">
-              <AvatarImage src={video.profile?.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {video.profile?.display_name?.charAt(0) || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </button>
+          {/* Profile avatar with follow button */}
+          <div className="relative">
+            <button
+              onClick={() => onProfileClick(video.user_id)}
+            >
+              <Avatar className="w-12 h-12 border-2 border-white">
+                <AvatarImage src={video.profile?.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {video.profile?.display_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+            {/* Follow button */}
+            {!isOwnVideo && (
+              <button
+                onClick={toggleFollow}
+                disabled={isFollowLoading}
+                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                  isFollowing 
+                    ? "bg-white text-primary" 
+                    : "bg-primary text-white"
+                }`}
+              >
+                {isFollowing ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Like */}
           <button onClick={handleLike} className="flex flex-col items-center gap-1">
@@ -342,6 +369,17 @@ const VideoItem = ({
               <MessageCircle className="w-7 h-7" />
             </div>
             <span className="text-white text-xs font-semibold">{formatCount(video.comments_count)}</span>
+          </button>
+
+          {/* Repost */}
+          <button 
+            onClick={() => setIsRepostOpen(true)} 
+            className="flex flex-col items-center gap-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
+              <Repeat2 className="w-7 h-7" />
+            </div>
+            <span className="text-white text-xs font-semibold">Reposter</span>
           </button>
 
           {/* Share */}
@@ -477,6 +515,47 @@ const VideoItem = ({
               </div>
               <span className="text-xs">Twitter</span>
             </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Repost Sheet */}
+      <Sheet open={isRepostOpen} onOpenChange={setIsRepostOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader>
+            <SheetTitle className="text-center">Reposter sur votre fil</SheetTitle>
+          </SheetHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-start gap-3 p-3 bg-muted rounded-xl">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={video.profile?.avatar_url || undefined} />
+                <AvatarFallback>{video.profile?.display_name?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-medium text-sm">@{video.profile?.username || "utilisateur"}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{video.caption || "Vidéo"}</p>
+              </div>
+            </div>
+            <Input
+              placeholder="Ajouter un commentaire (optionnel)..."
+              value={repostComment}
+              onChange={(e) => setRepostComment(e.target.value)}
+              className="rounded-xl"
+            />
+            <Button
+              className="w-full rounded-xl"
+              disabled={isRepostLoading}
+              onClick={async () => {
+                const success = await repostVideo(video.id, repostComment);
+                if (success) {
+                  setIsRepostOpen(false);
+                  setRepostComment("");
+                }
+              }}
+            >
+              <Repeat2 className="w-4 h-4 mr-2" />
+              Reposter
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
