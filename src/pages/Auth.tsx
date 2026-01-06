@@ -13,6 +13,7 @@ import { z } from "zod";
 
 const emailSchema = z.string().email("Email invalide");
 const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
+const phoneSchema = z.string().min(8, "Numéro de téléphone invalide");
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,11 +22,14 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [profession, setProfession] = useState("");
   const [location, setLocation] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string }>({});
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -33,8 +37,8 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+  const validateForm = (isSignup = false) => {
+    const newErrors: { email?: string; password?: string; phone?: string } = {};
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
@@ -45,6 +49,13 @@ const Auth = () => {
     if (!passwordResult.success) {
       newErrors.password = passwordResult.error.errors[0].message;
     }
+
+    if (isSignup) {
+      const phoneResult = phoneSchema.safeParse(phoneNumber);
+      if (!phoneResult.success) {
+        newErrors.phone = phoneResult.error.errors[0].message;
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -52,11 +63,21 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm(true)) return;
+    
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Numéro requis",
+        description: "Le numéro de téléphone est obligatoire pour les appels.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setLoading(true);
 
     try {
+      const displayName = `${firstName} ${lastName}`.trim();
       const redirectUrl = `${window.location.origin}/`;
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -65,6 +86,8 @@ const Auth = () => {
           emailRedirectTo: redirectUrl,
           data: {
             display_name: displayName,
+            first_name: firstName,
+            last_name: lastName,
             profession,
             location,
           }
@@ -90,7 +113,11 @@ const Auth = () => {
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
+            first_name: firstName || null,
+            last_name: lastName || null,
             display_name: displayName || null,
+            username: username || null,
+            phone_number: phoneNumber || null,
             birthdate: birthdate || null,
             profession: profession || null,
             location: location || null,
@@ -280,15 +307,55 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="signup-name">Nom complet</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-firstname">Prénom *</Label>
                     <Input
-                      id="signup-name"
+                      id="signup-firstname"
+                      type="text"
+                      placeholder="Votre prénom"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-lastname">Nom *</Label>
+                    <Input
+                      id="signup-lastname"
                       type="text"
                       placeholder="Votre nom"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
                     />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="signup-username">Pseudo</Label>
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="@votre_pseudo"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="signup-phone">Numéro de téléphone * (pour les appels)</Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="+33 6 12 34 56 78"
+                      value={phoneNumber}
+                      onChange={(e) => {
+                        setPhoneNumber(e.target.value);
+                        setErrors({ ...errors, phone: undefined });
+                      }}
+                      required
+                      className={errors?.phone ? "border-destructive" : ""}
+                    />
+                    {errors?.phone && (
+                      <p className="text-sm text-destructive">{errors.phone}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-birthdate">Date de naissance</Label>

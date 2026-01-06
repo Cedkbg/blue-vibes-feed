@@ -123,6 +123,80 @@ export type Database = {
           },
         ]
       }
+      communities: {
+        Row: {
+          avatar_url: string | null
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          is_private: boolean | null
+          members_count: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          members_count?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          members_count?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_members: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
@@ -194,6 +268,77 @@ export type Database = {
           follower_id?: string
           following_id?: string
           id?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          avatar_url: string | null
+          cover_url: string | null
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          is_private: boolean | null
+          members_count: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          members_count?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          members_count?: number | null
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -422,11 +567,16 @@ export type Database = {
           created_at: string
           display_name: string | null
           external_link: string | null
+          first_name: string | null
           id: string
+          is_online: boolean | null
           is_private: boolean
           is_verified: boolean
           language: string | null
+          last_name: string | null
+          last_seen: string | null
           location: string | null
+          phone_number: string | null
           profession: string | null
           updated_at: string
           username: string | null
@@ -438,11 +588,16 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           external_link?: string | null
+          first_name?: string | null
           id: string
+          is_online?: boolean | null
           is_private?: boolean
           is_verified?: boolean
           language?: string | null
+          last_name?: string | null
+          last_seen?: string | null
           location?: string | null
+          phone_number?: string | null
           profession?: string | null
           updated_at?: string
           username?: string | null
@@ -454,11 +609,16 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           external_link?: string | null
+          first_name?: string | null
           id?: string
+          is_online?: boolean | null
           is_private?: boolean
           is_verified?: boolean
           language?: string | null
+          last_name?: string | null
+          last_seen?: string | null
           location?: string | null
+          phone_number?: string | null
           profession?: string | null
           updated_at?: string
           username?: string | null
