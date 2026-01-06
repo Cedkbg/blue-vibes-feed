@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { StartLiveModal } from "@/components/StartLiveModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePresence } from "@/hooks/usePresence";
 
 interface Post {
   id: string;
@@ -40,11 +41,15 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showStartLive, setShowStartLive] = useState(false);
 
+  // Track user presence (online status)
+  usePresence(user?.id);
+
   const fetchPosts = async () => {
-    // Fetch posts
+    // Fetch posts - only images, not videos (videos go to video page)
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("*")
+      .neq("media_type", "video")
       .order("created_at", { ascending: false });
 
     if (postsError || !postsData) {
