@@ -146,6 +146,20 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
       toast.error("Erreur lors de l'ajout du commentaire");
       console.error(error);
     } else {
+      // Increment comments_count on the post
+      const { data: postData } = await supabase
+        .from("posts")
+        .select("comments_count")
+        .eq("id", postId)
+        .single();
+      
+      if (postData) {
+        await supabase
+          .from("posts")
+          .update({ comments_count: (postData.comments_count || 0) + 1 })
+          .eq("id", postId);
+      }
+      
       setNewComment("");
       setReplyTo(null);
       if (replyTo) {
