@@ -10,10 +10,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: "Accueil", path: "/" },
-  { icon: Users, label: "Amis", path: "/friends" },
-  { icon: PhoneCall, label: "Appels", path: "/discover" },
   { icon: Video, label: "Vidéos", path: "/video" },
+  { icon: Users, label: "Amis", path: "/friends" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
+  { icon: PhoneCall, label: "Appels", path: "/discover" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
 
