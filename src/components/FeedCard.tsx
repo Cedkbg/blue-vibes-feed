@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
 import { useLikes } from "@/hooks/useLikes";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,13 +39,64 @@ export const FeedCard = ({
   mediaType,
   caption, 
   likes: initialLikes, 
-  comments,
+  comments: initialComments,
 }: FeedCardProps) => {
   const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(initialComments);
   const isVideo = mediaType === "video";
+
+  // Fetch real-time comments count
+  useEffect(() => {
+    const fetchCommentsCount = async () => {
+      const { data } = await supabase
+        .from("posts")
+        .select("comments_count")
+        .eq("id", id)
+        .single();
+      
+      if (data) {
+        setCommentsCount(data.comments_count);
+      }
+    };
+    
+    fetchCommentsCount();
+    
+    // Subscribe to changes
+    const channel = supabase
+      .channel(`post-comments-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+          filter: `post_id=eq.${id}`
+        },
+        () => fetchCommentsCount()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "posts",
+          filter: `id=eq.${id}`
+        },
+        (payload: any) => {
+          if (payload.new?.comments_count !== undefined) {
+            setCommentsCount(payload.new.comments_count);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   const handleProfileClick = () => {
     navigate(`/profile/${userId}`);
@@ -173,7 +224,7 @@ export const FeedCard = ({
 
               {/* Comments */}
               <CommentsButton 
-                count={comments} 
+                count={commentsCount} 
                 onClick={() => setCommentsOpen(true)} 
                 variant="overlay"
               />
@@ -280,7 +331,7 @@ export const FeedCard = ({
                 <span className="text-sm text-muted-foreground">{formatCount(likesCount)}</span>
               </button>
               <CommentsButton 
-                count={comments} 
+                count={commentsCount} 
                 onClick={() => setCommentsOpen(true)} 
                 variant="inline"
               />
@@ -310,35 +361,25 @@ export const FeedCard = ({
         )}
 
         {hasImage && (
-          <>
-            {/* Match Button */}
-            <div className="p-3">
-              <Button className="w-full rounded-full font-bold text-base py-5">
-                Match!
-              </Button>
+          <div 
+            className="px-3 py-3 flex items-center gap-3 cursor-pointer"
+            onClick={() => setCommentsOpen(true)}
+          >
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user.avatar} />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground">
+              Ajouter un commentaire...
             </div>
-
-            {/* Comment Input Trigger */}
-            <div 
-              className="px-3 pb-3 flex items-center gap-3 cursor-pointer"
-              onClick={() => setCommentsOpen(true)}
-            >
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground">
-                Ajouter un commentaire...
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
       {/* Comments Sheet */}
       <CommentsSection 
         postId={id}
-        initialCount={comments}
+        initialCount={commentsCount}
         isOpen={commentsOpen}
         onOpenChange={setCommentsOpen}
       />

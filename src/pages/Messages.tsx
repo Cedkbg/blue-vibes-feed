@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MoreVertical, Plus } from "lucide-react";
+import { Search, MoreVertical, Plus, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { BottomNav } from "@/components/BottomNav";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -25,6 +26,7 @@ interface Conversation {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
+    is_online?: boolean;
   };
   last_message?: string;
   unread_count?: number;
@@ -35,6 +37,8 @@ interface Profile {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_online?: boolean;
+  phone_number?: string | null;
 }
 
 const Messages = () => {
@@ -46,11 +50,11 @@ const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
 
   const fetchConversations = async () => {
     if (!user) return;
 
-    // Fetch conversations
     const { data: convData } = await supabase
       .from("conversations")
       .select("*")
@@ -62,26 +66,22 @@ const Messages = () => {
       return;
     }
 
-    // Get other user IDs
     const otherUserIds = convData.map((c) =>
       c.user1_id === user.id ? c.user2_id : c.user1_id
     );
 
-    // Fetch profiles
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, display_name, username, avatar_url")
+      .select("id, display_name, username, avatar_url, is_online")
       .in("id", otherUserIds);
 
     const profilesMap = new Map<string, Profile>();
     profiles?.forEach((p) => profilesMap.set(p.id, p));
 
-    // Fetch last messages and unread counts
     const conversationsWithDetails = await Promise.all(
       convData.map(async (conv) => {
         const otherId = conv.user1_id === user.id ? conv.user2_id : conv.user1_id;
 
-        // Get last message
         const { data: lastMsg } = await supabase
           .from("messages")
           .select("content")
@@ -92,7 +92,6 @@ const Messages = () => {
           .limit(1)
           .single();
 
-        // Get unread count
         const { count } = await supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
@@ -113,15 +112,14 @@ const Messages = () => {
     setIsLoading(false);
   };
 
-  // Fetch all users for new chat
   const fetchUsers = async () => {
     if (!user) return;
 
     const { data } = await supabase
       .from("profiles")
-      .select("id, display_name, username, avatar_url")
+      .select("id, display_name, username, avatar_url, is_online, phone_number")
       .neq("id", user.id)
-      .limit(50);
+      .limit(100);
 
     if (data) {
       setAllUsers(data);
@@ -133,12 +131,11 @@ const Messages = () => {
     fetchUsers();
   }, [user]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel("messages-list")
+      .channel("messages-list-realtime")
       .on(
         "postgres_changes",
         {
@@ -159,6 +156,17 @@ const Messages = () => {
         },
         () => {
           fetchConversations();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          fetchUsers();
         }
       )
       .subscribe();
@@ -197,6 +205,11 @@ const Messages = () => {
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const filteredContacts = allUsers.filter((u) => {
+    const name = u.display_name || u.username || "";
+    return name.toLowerCase().includes(contactSearch.toLowerCase());
+  });
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -231,12 +244,17 @@ const Messages = () => {
                       onClick={() => startChat(profile.id)}
                       className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
                     >
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={profile.avatar_url || ""} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {(profile.display_name || profile.username || "?")?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src={profile.avatar_url || ""} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {(profile.display_name || profile.username || "?")?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        {profile.is_online && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                        )}
+                      </div>
                       <span className="font-medium">
                         {profile.display_name || profile.username || "Utilisateur"}
                       </span>
@@ -247,88 +265,176 @@ const Messages = () => {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-foreground/60" />
-          <Input
-            placeholder="Rechercher..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-primary-foreground/10 border-0 text-primary-foreground placeholder:text-primary-foreground/60"
-          />
-        </div>
       </header>
 
-      {/* Conversations List */}
-      <div className="divide-y divide-border">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <p>Aucune conversation</p>
-            <Button
-              variant="link"
-              onClick={() => setNewChatOpen(true)}
-              className="mt-2"
-            >
-              Commencer une nouvelle conversation
-            </Button>
-          </div>
-        ) : (
-          filteredConversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              onClick={() => navigate(`/chat/${conversation.other_user?.id}`)}
-              className="w-full px-6 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors"
-            >
-              <div className="relative">
-                <Avatar className="w-14 h-14 bg-primary/10">
-                  <AvatarImage src={conversation.other_user?.avatar_url || ""} />
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                    {(conversation.other_user?.display_name ||
-                      conversation.other_user?.username ||
-                      "?")?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                {conversation.unread_count && conversation.unread_count > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-xs text-primary-foreground font-bold">
-                      {conversation.unread_count}
-                    </span>
-                  </div>
-                )}
-              </div>
+      {/* Tabs */}
+      <Tabs defaultValue="discussions" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 rounded-none border-b bg-background">
+          <TabsTrigger 
+            value="discussions" 
+            className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Discussions
+          </TabsTrigger>
+          <TabsTrigger 
+            value="contacts"
+            className="gap-2 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+          >
+            <Users className="w-4 h-4" />
+            Contacts
+          </TabsTrigger>
+        </TabsList>
 
-              <div className="flex-1 text-left">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-semibold">
-                    {conversation.other_user?.display_name ||
-                      conversation.other_user?.username ||
-                      "Utilisateur"}
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {formatTime(conversation.last_message_at)}
-                  </span>
-                </div>
-                <p
-                  className={`text-sm truncate ${
-                    conversation.unread_count && conversation.unread_count > 0
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground"
-                  }`}
+        {/* Discussions Tab */}
+        <TabsContent value="discussions" className="mt-0">
+          <div className="px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une discussion..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="divide-y divide-border">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune discussion</p>
+                <Button
+                  variant="link"
+                  onClick={() => setNewChatOpen(true)}
+                  className="mt-2"
                 >
-                  {conversation.last_message || "Aucun message"}
-                </p>
+                  Commencer une nouvelle conversation
+                </Button>
               </div>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <button
+                  key={conversation.id}
+                  onClick={() => navigate(`/chat/${conversation.other_user?.id}`)}
+                  className="w-full px-6 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="relative">
+                    <Avatar className="w-14 h-14 bg-primary/10">
+                      <AvatarImage src={conversation.other_user?.avatar_url || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {(conversation.other_user?.display_name ||
+                          conversation.other_user?.username ||
+                          "?")?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conversation.other_user?.is_online && (
+                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-background rounded-full" />
+                    )}
+                    {conversation.unread_count && conversation.unread_count > 0 && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-xs text-primary-foreground font-bold">
+                          {conversation.unread_count}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-              <Button size="icon" variant="ghost">
-                <MoreVertical className="w-5 h-5" />
-              </Button>
-            </button>
-          ))
-        )}
-      </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold">
+                        {conversation.other_user?.display_name ||
+                          conversation.other_user?.username ||
+                          "Utilisateur"}
+                      </h3>
+                      <span className="text-xs text-muted-foreground">
+                        {formatTime(conversation.last_message_at)}
+                      </span>
+                    </div>
+                    <p
+                      className={`text-sm truncate ${
+                        conversation.unread_count && conversation.unread_count > 0
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {conversation.last_message || "Aucun message"}
+                    </p>
+                  </div>
+
+                  <Button size="icon" variant="ghost">
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </button>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Contacts Tab */}
+        <TabsContent value="contacts" className="mt-0">
+          <div className="px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un contact..."
+                value={contactSearch}
+                onChange={(e) => setContactSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="divide-y divide-border">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Aucun contact trouvé</p>
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  onClick={() => startChat(contact.id)}
+                  className="w-full px-6 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="relative">
+                    <Avatar className="w-12 h-12 bg-primary/10">
+                      <AvatarImage src={contact.avatar_url || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {(contact.display_name || contact.username || "?")?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {contact.is_online && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 text-left">
+                    <h3 className="font-semibold">
+                      {contact.display_name || contact.username || "Utilisateur"}
+                    </h3>
+                    {contact.phone_number && (
+                      <p className="text-sm text-muted-foreground">{contact.phone_number}</p>
+                    )}
+                  </div>
+
+                  <MessageCircle className="w-5 h-5 text-primary" />
+                </button>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <BottomNav />
     </div>

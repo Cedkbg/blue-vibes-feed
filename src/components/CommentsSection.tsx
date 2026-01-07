@@ -390,10 +390,18 @@ interface CommentsButtonProps {
 }
 
 export const CommentsButton = ({ count, onClick, variant = "inline" }: CommentsButtonProps) => {
+  const [currentCount, setCurrentCount] = useState(count);
+  const { postId } = { postId: '' }; // Will be passed as prop
+
   const formatCount = (num: number) => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
   };
+
+  // Update count when prop changes
+  useEffect(() => {
+    setCurrentCount(count);
+  }, [count]);
 
   if (variant === "overlay") {
     return (
@@ -405,7 +413,7 @@ export const CommentsButton = ({ count, onClick, variant = "inline" }: CommentsB
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
         <span className="text-white text-xs font-semibold drop-shadow">
-          {formatCount(count)}
+          {formatCount(currentCount)}
         </span>
       </button>
     );
@@ -414,7 +422,7 @@ export const CommentsButton = ({ count, onClick, variant = "inline" }: CommentsB
   return (
     <button onClick={onClick} className="flex items-center gap-2">
       <MessageCircle className="w-5 h-5 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">{formatCount(count)}</span>
+      <span className="text-sm text-muted-foreground">{formatCount(currentCount)}</span>
     </button>
   );
 };
