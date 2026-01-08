@@ -149,7 +149,7 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
       // Increment comments_count on the post
       const { data: postData } = await supabase
         .from("posts")
-        .select("comments_count")
+        .select("comments_count, user_id")
         .eq("id", postId)
         .single();
       
@@ -158,6 +158,17 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
           .from("posts")
           .update({ comments_count: (postData.comments_count || 0) + 1 })
           .eq("id", postId);
+        
+        // Send notification to post owner (if not commenting on own post)
+        if (postData.user_id !== user.id) {
+          await supabase.from("notifications").insert({
+            user_id: postData.user_id,
+            type: "comment",
+            content: "a commenté votre publication",
+            from_user_id: user.id,
+            post_id: postId,
+          });
+        }
       }
       
       setNewComment("");
