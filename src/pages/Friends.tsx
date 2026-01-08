@@ -15,13 +15,14 @@ import { useChannels } from "@/hooks/useChannels";
 import { useStories } from "@/hooks/useStories";
 import { useLiveStreams } from "@/hooks/useLiveStreams";
 import { useAuth } from "@/hooks/useAuth";
+import { useGroupMembership } from "@/hooks/useGroupMembership";
 import { StoriesCarousel } from "@/components/StoriesCarousel";
 import { ChannelCard } from "@/components/ChannelCard";
 import { StartLiveModal } from "@/components/StartLiveModal";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Radio, Play, Eye, Plus, Tv, 
-  Hash, Layers, Sparkles, BadgeCheck, TrendingUp, UserPlus, Crown
+  Hash, Layers, Sparkles, BadgeCheck, TrendingUp, UserPlus, Crown, LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -73,6 +74,14 @@ const Friends = () => {
   const { toast: toastHook } = useToast();
   const { channels, subscribedChannelIds, loading: channelsLoading, createChannel, subscribeToChannel, unsubscribeFromChannel } = useChannels();
   const { liveStreams, loading: streamsLoading, joinStream } = useLiveStreams();
+  const { 
+    isMemberOfGroup, 
+    isMemberOfCommunity, 
+    joinGroup, 
+    leaveGroup, 
+    joinCommunity, 
+    leaveCommunity 
+  } = useGroupMembership();
   const [showStartLive, setShowStartLive] = useState(false);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
@@ -307,46 +316,106 @@ const Friends = () => {
     </div>
   );
 
-  const GroupCard = ({ group }: { group: Group }) => (
-    <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3 mb-3">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={group.avatar_url || ""} />
-          <AvatarFallback><Users className="w-6 h-6" /></AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">{group.name}</h3>
-          <p className="text-sm text-muted-foreground">{group.members_count || 0} membres</p>
-        </div>
-      </div>
-      {group.description && (
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{group.description}</p>
-      )}
-      <Button size="sm" className="w-full">Rejoindre</Button>
-    </div>
-  );
+  const GroupCard = ({ group }: { group: Group }) => {
+    const isMember = isMemberOfGroup(group.id);
+    const isCreator = user?.id === group.creator_id;
+    
+    const handleToggleMembership = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isMember) {
+        await leaveGroup(group.id);
+      } else {
+        await joinGroup(group.id);
+      }
+    };
 
-  const CommunityCard = ({ community }: { community: Community }) => (
-    <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3 mb-3">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={community.avatar_url || ""} />
-          <AvatarFallback><Crown className="w-6 h-6" /></AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold truncate">{community.name}</h3>
-          <p className="text-sm text-muted-foreground">{community.members_count || 0} membres</p>
+    return (
+      <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={group.avatar_url || ""} />
+            <AvatarFallback><Users className="w-6 h-6" /></AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate">{group.name}</h3>
+            <p className="text-sm text-muted-foreground">{group.members_count || 0} membres</p>
+          </div>
+          {isCreator && <Badge variant="secondary">Créateur</Badge>}
         </div>
+        {group.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{group.description}</p>
+        )}
+        <Button 
+          size="sm" 
+          className="w-full"
+          variant={isMember ? "outline" : "default"}
+          onClick={handleToggleMembership}
+          disabled={isCreator}
+        >
+          {isMember ? (
+            <>
+              <LogOut className="w-4 h-4 mr-2" />
+              Quitter
+            </>
+          ) : (
+            "Rejoindre"
+          )}
+        </Button>
       </div>
-      {community.category && (
-        <Badge variant="secondary" className="mb-2">{community.category}</Badge>
-      )}
-      {community.description && (
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{community.description}</p>
-      )}
-      <Button size="sm" className="w-full">Rejoindre</Button>
-    </div>
-  );
+    );
+  };
+
+  const CommunityCard = ({ community }: { community: Community }) => {
+    const isMember = isMemberOfCommunity(community.id);
+    const isCreator = user?.id === community.creator_id;
+    
+    const handleToggleMembership = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isMember) {
+        await leaveCommunity(community.id);
+      } else {
+        await joinCommunity(community.id);
+      }
+    };
+
+    return (
+      <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={community.avatar_url || ""} />
+            <AvatarFallback><Crown className="w-6 h-6" /></AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate">{community.name}</h3>
+            <p className="text-sm text-muted-foreground">{community.members_count || 0} membres</p>
+          </div>
+          {isCreator && <Badge variant="secondary">Créateur</Badge>}
+        </div>
+        {community.category && (
+          <Badge variant="secondary" className="mb-2">{community.category}</Badge>
+        )}
+        {community.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{community.description}</p>
+        )}
+        <Button 
+          size="sm" 
+          className="w-full"
+          variant={isMember ? "outline" : "default"}
+          onClick={handleToggleMembership}
+          disabled={isCreator}
+        >
+          {isMember ? (
+            <>
+              <LogOut className="w-4 h-4 mr-2" />
+              Quitter
+            </>
+          ) : (
+            "Rejoindre"
+          )}
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">

@@ -160,6 +160,14 @@ const Chat = () => {
           },
           { onConflict: "user1_id,user2_id" }
         );
+      
+      // Send notification to recipient
+      await supabase.from("notifications").insert({
+        user_id: recipientId,
+        type: "message",
+        content: "vous a envoyé un message",
+        from_user_id: user.id,
+      });
     }
   };
 
