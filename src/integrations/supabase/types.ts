@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_signals: {
+        Row: {
+          call_type: string
+          callee_id: string
+          caller_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          signal_data: Json
+          signal_type: string
+        }
+        Insert: {
+          call_type?: string
+          callee_id: string
+          caller_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          signal_data: Json
+          signal_type: string
+        }
+        Update: {
+          call_type?: string
+          callee_id?: string
+          caller_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          signal_data?: Json
+          signal_type?: string
+        }
+        Relationships: []
+      }
       channel_subscribers: {
         Row: {
           channel_id: string
@@ -771,6 +804,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_call_signals: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
