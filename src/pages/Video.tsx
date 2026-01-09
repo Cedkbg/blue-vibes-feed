@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { 
-  Play, Heart, MessageCircle, Share2, Volume2, VolumeX, Pause, 
-  Bookmark, Download, MoreHorizontal, ChevronDown, ChevronUp,
-  Copy, Send, Link2, Plus, Repeat2, Check
+  Play, Heart, MessageCircle, Share2, Volume2, VolumeX, 
+  Bookmark, Download, ChevronDown, ChevronUp,
+  Send, Link2, Plus, Repeat2, Check
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
@@ -169,7 +169,7 @@ const Video = () => {
       ) : (
         <div
           ref={containerRef}
-          className="h-screen w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide pt-16 pb-20"
+          className="h-screen w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
           style={{ scrollSnapType: "y mandatory" }}
         >
           {videos.map((video, index) => (
@@ -223,12 +223,38 @@ const VideoItem = ({
   const { isFollowing, toggleFollow, isLoading: isFollowLoading } = useFollows(video.user_id);
   const { repostVideo, isLoading: isRepostLoading } = useReposts();
   const [localLikes, setLocalLikes] = useState(video.likes_count);
+  const [localComments, setLocalComments] = useState(video.comments_count);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isRepostOpen, setIsRepostOpen] = useState(false);
   const [repostComment, setRepostComment] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const isOwnVideo = user?.id === video.user_id;
+
+  // Subscribe to comment count changes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`video-comments-${video.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "posts",
+          filter: `id=eq.${video.id}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setLocalComments((payload.new as any).comments_count || 0);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [video.id]);
 
   const handleLike = async () => {
     if (!user) {
@@ -285,6 +311,17 @@ const VideoItem = ({
     setIsShareOpen(false);
   };
 
+  const handleRepost = async () => {
+    if (!user) {
+      toast.error("Connectez-vous pour reposter");
+      return;
+    }
+    await repostVideo(video.id, repostComment);
+    setRepostComment("");
+    setIsRepostOpen(false);
+    toast.success("Vidéo repostée !");
+  };
+
   const caption = video.caption || "";
   const shouldTruncate = caption.length > 100;
   const displayCaption = isExpanded ? caption : caption.slice(0, 100);
@@ -292,14 +329,14 @@ const VideoItem = ({
   return (
     <>
       <div
-        className="relative h-screen w-full snap-start snap-always flex items-center justify-center"
-        style={{ height: "calc(100vh - 8rem)" }}
+        className="relative w-full snap-start snap-always flex items-center justify-center"
+        style={{ height: "100vh" }}
       >
         {/* Video */}
         <video
           ref={(el) => (videoRefs.current[index] = el)}
           src={video.media_url}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-contain bg-black"
           loop
           muted={isMuted}
           playsInline
@@ -307,7 +344,7 @@ const VideoItem = ({
         />
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
 
         {/* Play/Pause indicator */}
         {!isPlaying && (
@@ -318,124 +355,105 @@ const VideoItem = ({
           </div>
         )}
 
-        {/* Right side actions */}
-        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-4">
+        {/* Right side actions - positioned better */}
+        <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 z-10">
           {/* Profile avatar with follow button */}
           <div className="relative">
-            <button
-              onClick={() => onProfileClick(video.user_id)}
-            >
-              <Avatar className="w-12 h-12 border-2 border-white">
+            <button onClick={() => onProfileClick(video.user_id)}>
+              <Avatar className="w-11 h-11 border-2 border-white shadow-lg">
                 <AvatarImage src={video.profile?.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   {video.profile?.display_name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
             </button>
-            {/* Follow button */}
             {!isOwnVideo && (
               <button
                 onClick={toggleFollow}
                 disabled={isFollowLoading}
-                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                  isFollowing 
-                    ? "bg-white text-primary" 
-                    : "bg-primary text-white"
+                className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full flex items-center justify-center transition-colors shadow-md ${
+                  isFollowing ? "bg-white text-primary" : "bg-primary text-white"
                 }`}
               >
-                {isFollowing ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
+                {isFollowing ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
               </button>
             )}
           </div>
 
           {/* Like */}
-          <button onClick={handleLike} className="flex flex-col items-center gap-1">
-            <div className={`w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center ${isLiked ? "text-red-500" : "text-white"}`}>
-              <Heart className={`w-7 h-7 ${isLiked ? "fill-current" : ""}`} />
+          <button onClick={handleLike} className="flex flex-col items-center gap-0.5">
+            <div className={`w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center ${isLiked ? "text-red-500" : "text-white"}`}>
+              <Heart className={`w-6 h-6 ${isLiked ? "fill-current" : ""}`} />
             </div>
-            <span className="text-white text-xs font-semibold">{formatCount(localLikes)}</span>
+            <span className="text-white text-xs font-medium">{formatCount(localLikes)}</span>
           </button>
 
           {/* Comments */}
-          <button 
-            onClick={() => setIsCommentsOpen(true)} 
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
-              <MessageCircle className="w-7 h-7" />
+          <button onClick={() => setIsCommentsOpen(true)} className="flex flex-col items-center gap-0.5">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
+              <MessageCircle className="w-6 h-6" />
             </div>
-            <span className="text-white text-xs font-semibold">{formatCount(video.comments_count)}</span>
+            <span className="text-white text-xs font-medium">{formatCount(localComments)}</span>
           </button>
 
           {/* Repost */}
-          <button 
-            onClick={() => setIsRepostOpen(true)} 
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
-              <Repeat2 className="w-7 h-7" />
+          <button onClick={() => setIsRepostOpen(true)} className="flex flex-col items-center gap-0.5">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
+              <Repeat2 className="w-6 h-6" />
             </div>
-            <span className="text-white text-xs font-semibold">Reposter</span>
+            <span className="text-white text-xs font-medium">Reposter</span>
           </button>
 
           {/* Share */}
-          <button 
-            onClick={() => setIsShareOpen(true)} 
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
-              <Share2 className="w-7 h-7" />
+          <button onClick={() => setIsShareOpen(true)} className="flex flex-col items-center gap-0.5">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
+              <Share2 className="w-6 h-6" />
             </div>
-            <span className="text-white text-xs font-semibold">Partager</span>
+            <span className="text-white text-xs font-medium">Partager</span>
           </button>
 
           {/* Favorite/Save */}
-          <button onClick={toggleFavorite} className="flex flex-col items-center gap-1">
-            <div className={`w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center ${isFavorited ? "text-yellow-400" : "text-white"}`}>
-              <Bookmark className={`w-7 h-7 ${isFavorited ? "fill-current" : ""}`} />
+          <button onClick={toggleFavorite} className="flex flex-col items-center gap-0.5">
+            <div className={`w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center ${isFavorited ? "text-yellow-400" : "text-white"}`}>
+              <Bookmark className={`w-6 h-6 ${isFavorited ? "fill-current" : ""}`} />
             </div>
-            <span className="text-white text-xs font-semibold">Enregistrer</span>
           </button>
 
           {/* Download */}
-          <button onClick={handleDownload} className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
-              <Download className="w-6 h-6" />
+          <button onClick={handleDownload} className="flex flex-col items-center gap-0.5">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
+              <Download className="w-5 h-5" />
             </div>
           </button>
 
           {/* Mute/Unmute */}
-          <button onClick={onToggleMute} className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white">
-              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+          <button onClick={onToggleMute} className="flex flex-col items-center gap-0.5">
+            <div className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white">
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </div>
           </button>
         </div>
 
-        {/* Bottom info */}
-        <div className="absolute left-4 right-20 bottom-24">
+        {/* Bottom info - better spacing */}
+        <div className="absolute left-4 right-16 bottom-20 z-10">
           <button
             onClick={() => onProfileClick(video.user_id)}
             className="flex items-center gap-2 mb-2"
           >
-            <span className="text-white font-bold text-base">
+            <span className="text-white font-bold text-base drop-shadow-lg">
               @{video.profile?.username || video.profile?.display_name || "utilisateur"}
             </span>
           </button>
           {caption && (
             <div>
-              <p className="text-white text-sm">
+              <p className="text-white text-sm drop-shadow-md">
                 {displayCaption}
                 {shouldTruncate && !isExpanded && "..."}
               </p>
               {shouldTruncate && (
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="flex items-center gap-1 text-white/70 text-xs mt-1 hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-white/80 text-xs mt-1 hover:text-white transition-colors"
                 >
                   {isExpanded ? (
                     <>
@@ -444,7 +462,7 @@ const VideoItem = ({
                     </>
                   ) : (
                     <>
-                      <MoreHorizontal className="w-4 h-4" />
+                      <ChevronDown className="w-4 h-4" />
                       Lire plus
                     </>
                   )}
@@ -458,7 +476,7 @@ const VideoItem = ({
       {/* Comments Sheet */}
       <CommentsSection
         postId={video.id}
-        initialCount={video.comments_count}
+        initialCount={localComments}
         isOpen={isCommentsOpen}
         onOpenChange={setIsCommentsOpen}
       />
@@ -470,50 +488,29 @@ const VideoItem = ({
             <SheetTitle className="text-center">Partager</SheetTitle>
           </SheetHeader>
           <div className="grid grid-cols-4 gap-4 py-6">
-            <button
-              onClick={() => handleShare("copy")}
-              className="flex flex-col items-center gap-2"
-            >
+            <button onClick={() => handleShare("copy")} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
                 <Link2 className="w-6 h-6" />
               </div>
               <span className="text-xs">Copier</span>
             </button>
-            <button
-              onClick={() => handleShare("whatsapp")}
-              className="flex flex-col items-center gap-2"
-            >
+            <button onClick={() => handleShare("whatsapp")} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center">
                 <Send className="w-6 h-6 text-white" />
               </div>
               <span className="text-xs">WhatsApp</span>
             </button>
-            <button
-              onClick={() => handleShare("telegram")}
-              className="flex flex-col items-center gap-2"
-            >
+            <button onClick={() => handleShare("telegram")} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center">
                 <Send className="w-6 h-6 text-white" />
               </div>
               <span className="text-xs">Telegram</span>
             </button>
-            <button
-              onClick={() => handleShare("facebook")}
-              className="flex flex-col items-center gap-2"
-            >
+            <button onClick={() => handleShare("facebook")} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">f</span>
+                <span className="text-white font-bold text-lg">f</span>
               </div>
               <span className="text-xs">Facebook</span>
-            </button>
-            <button
-              onClick={() => handleShare("twitter")}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center">
-                <span className="text-white font-bold text-lg">𝕏</span>
-              </div>
-              <span className="text-xs">Twitter</span>
             </button>
           </div>
         </SheetContent>
@@ -523,36 +520,15 @@ const VideoItem = ({
       <Sheet open={isRepostOpen} onOpenChange={setIsRepostOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader>
-            <SheetTitle className="text-center">Reposter sur votre fil</SheetTitle>
+            <SheetTitle className="text-center">Reposter</SheetTitle>
           </SheetHeader>
           <div className="py-4 space-y-4">
-            <div className="flex items-start gap-3 p-3 bg-muted rounded-xl">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src={video.profile?.avatar_url || undefined} />
-                <AvatarFallback>{video.profile?.display_name?.charAt(0) || "U"}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="font-medium text-sm">@{video.profile?.username || "utilisateur"}</p>
-                <p className="text-xs text-muted-foreground line-clamp-2">{video.caption || "Vidéo"}</p>
-              </div>
-            </div>
             <Input
               placeholder="Ajouter un commentaire (optionnel)..."
               value={repostComment}
               onChange={(e) => setRepostComment(e.target.value)}
-              className="rounded-xl"
             />
-            <Button
-              className="w-full rounded-xl"
-              disabled={isRepostLoading}
-              onClick={async () => {
-                const success = await repostVideo(video.id, repostComment);
-                if (success) {
-                  setIsRepostOpen(false);
-                  setRepostComment("");
-                }
-              }}
-            >
+            <Button onClick={handleRepost} disabled={isRepostLoading} className="w-full">
               <Repeat2 className="w-4 h-4 mr-2" />
               Reposter
             </Button>

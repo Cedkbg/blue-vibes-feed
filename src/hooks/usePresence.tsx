@@ -1,7 +1,15 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface OnlineUser {
+  id: string;
+  is_online: boolean;
+  last_seen: string | null;
+}
+
 export const usePresence = (userId: string | undefined) => {
+  const [onlineUsers, setOnlineUsers] = useState<Map<string, boolean>>(new Map());
+
   const setOnline = useCallback(async () => {
     if (!userId) return;
     
@@ -41,7 +49,7 @@ export const usePresence = (userId: string | undefined) => {
     setOnline();
 
     // Use Supabase Realtime Presence for more reliable tracking
-    const presenceChannel = supabase.channel(`presence-${userId}`, {
+    const presenceChannel = supabase.channel(`presence-global`, {
       config: {
         presence: {
           key: userId,
@@ -52,13 +60,28 @@ export const usePresence = (userId: string | undefined) => {
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState();
+        const newOnlineUsers = new Map<string, boolean>();
+        
+        Object.entries(state).forEach(([key, presences]) => {
+          if (presences && presences.length > 0) {
+            newOnlineUsers.set(key, true);
+          }
+        });
+        
+        setOnlineUsers(newOnlineUsers);
         console.log('Presence state synced:', state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         console.log('User joined:', key, newPresences);
+        setOnlineUsers(prev => new Map(prev).set(key, true));
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         console.log('User left:', key, leftPresences);
+        setOnlineUsers(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(key);
+          return newMap;
+        });
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -69,6 +92,31 @@ export const usePresence = (userId: string | undefined) => {
         }
       });
 
+    // Also subscribe to profiles table for is_online changes
+    const profilesChannel = supabase
+      .channel('profiles-online-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          const profile = payload.new as OnlineUser;
+          setOnlineUsers(prev => {
+            const newMap = new Map(prev);
+            if (profile.is_online) {
+              newMap.set(profile.id, true);
+            } else {
+              newMap.delete(profile.id);
+            }
+            return newMap;
+          });
+        }
+      )
+      .subscribe();
+
     // Handle visibility change
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -78,18 +126,9 @@ export const usePresence = (userId: string | undefined) => {
       }
     };
 
-    // Handle beforeunload - use sendBeacon for reliability
+    // Handle beforeunload
     const handleBeforeUnload = () => {
-      // Use sendBeacon for reliable offline status update
-      const data = JSON.stringify({ 
-        is_online: false, 
-        last_seen: new Date().toISOString() 
-      });
-      
-      navigator.sendBeacon(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`,
-        new Blob([data], { type: 'application/json' })
-      );
+      setOffline();
     };
 
     // Handle page focus/blur
@@ -112,8 +151,13 @@ export const usePresence = (userId: string | undefined) => {
       clearInterval(heartbeat);
       setOffline();
       supabase.removeChannel(presenceChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, [userId, setOnline, setOffline]);
 
-  return { setOnline, setOffline };
+  const isUserOnline = useCallback((id: string) => {
+    return onlineUsers.has(id);
+  }, [onlineUsers]);
+
+  return { setOnline, setOffline, onlineUsers, isUserOnline };
 };

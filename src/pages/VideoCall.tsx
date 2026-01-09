@@ -3,11 +3,11 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useWebRTC, formatCallDuration } from "@/hooks/useWebRTC";
 import { 
   Mic, MicOff, Video, VideoOff, PhoneOff, 
-  Camera, RotateCcw, Volume2, VolumeX, Maximize2,
-  ArrowLeft
+  RotateCcw, Volume2, VolumeX, Maximize2,
+  ArrowLeft, Phone
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,22 +23,39 @@ const VideoCall = () => {
   const { contactId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const callType = searchParams.get("type") || "video";
+  const callType = (searchParams.get("type") || "video") as "video" | "audio";
   
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
-  const [callStatus, setCallStatus] = useState<"connecting" | "ringing" | "connected" | "ended">("connecting");
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(callType === "audio");
   const [isSpeakerOff, setIsSpeakerOff] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const {
+    callStatus,
+    isMuted,
+    isVideoOff,
+    localStream,
+    remoteStream,
+    callDuration,
+    startCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+    switchCamera,
+  } = useWebRTC({
+    contactId: contactId || "",
+    callType,
+    onCallEnded: () => {
+      toast.success("Appel terminé");
+      setTimeout(() => navigate(-1), 500);
+    },
+    onCallConnected: () => {
+      toast.success("Appel connecté");
+    },
+  });
 
   useEffect(() => {
     const fetchContact = async () => {
@@ -59,121 +76,40 @@ const VideoCall = () => {
     fetchContact();
   }, [contactId]);
 
-  // Initialize media stream
+  // Start call when component mounts
   useEffect(() => {
-    const initMediaStream = async () => {
-      try {
-        const constraints: MediaStreamConstraints = {
-          audio: true,
-          video: callType === "video" ? { facingMode: "user" } : false
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        localStreamRef.current = stream;
-        
-        if (localVideoRef.current && callType === "video") {
-          localVideoRef.current.srcObject = stream;
-        }
-        
-        // Simulate call connection after 2 seconds
-        setCallStatus("ringing");
-        setTimeout(() => {
-          setCallStatus("connected");
-          // Start call timer
-          callTimerRef.current = setInterval(() => {
-            setCallDuration(prev => prev + 1);
-          }, 1000);
-        }, 2000);
-        
-      } catch (error) {
-        console.error("Error accessing media devices:", error);
-        toast.error("Impossible d'accéder à la caméra ou au microphone");
-      }
-    };
-
-    initMediaStream();
-
-    return () => {
-      // Cleanup
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (callTimerRef.current) {
-        clearInterval(callTimerRef.current);
-      }
-    };
-  }, [callType]);
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const toggleMute = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsMuted(!isMuted);
+    if (!loading && contact && callStatus === "idle") {
+      startCall();
     }
-  };
+  }, [loading, contact, callStatus, startCall]);
 
-  const toggleVideo = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getVideoTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setIsVideoOff(!isVideoOff);
+  // Attach local stream to video element
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
     }
-  };
+  }, [localStream]);
+
+  // Attach remote stream to video element
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const toggleSpeaker = () => {
     setIsSpeakerOff(!isSpeakerOff);
-    // In a real implementation, this would control audio output
-  };
-
-  const switchCamera = async () => {
-    if (localStreamRef.current) {
-      const currentTrack = localStreamRef.current.getVideoTracks()[0];
-      const currentSettings = currentTrack.getSettings();
-      const newFacingMode = currentSettings.facingMode === "user" ? "environment" : "user";
-      
-      currentTrack.stop();
-      
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: newFacingMode }
-        });
-        
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = newStream;
-        }
-        
-        // Replace video track
-        localStreamRef.current.removeTrack(currentTrack);
-        localStreamRef.current.addTrack(newStream.getVideoTracks()[0]);
-      } catch (error) {
-        console.error("Error switching camera:", error);
-      }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.muted = !isSpeakerOff;
     }
-  };
-
-  const endCall = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-    }
-    setCallStatus("ended");
-    
-    toast.success("Appel terminé");
-    setTimeout(() => navigate(-1), 500);
   };
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  const handleEndCall = () => {
+    endCall();
   };
 
   if (loading) {
@@ -191,14 +127,17 @@ const VideoCall = () => {
         variant="ghost"
         size="icon"
         className="absolute top-4 left-4 z-20 text-white hover:bg-white/20"
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          endCall();
+          navigate(-1);
+        }}
       >
         <ArrowLeft className="w-6 h-6" />
       </Button>
 
-      {/* Remote video (or contact avatar for audio calls) */}
+      {/* Remote video (or contact avatar for audio calls / not connected) */}
       <div className="absolute inset-0 flex items-center justify-center">
-        {callType === "video" && callStatus === "connected" ? (
+        {callType === "video" && callStatus === "connected" && remoteStream ? (
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -214,7 +153,7 @@ const VideoCall = () => {
                   {contact?.display_name?.[0] || contact?.username?.[0] || "U"}
                 </AvatarFallback>
               </Avatar>
-              {callStatus === "ringing" && (
+              {(callStatus === "calling" || callStatus === "ringing") && (
                 <div className="absolute inset-0 rounded-full border-4 border-primary animate-ping" />
               )}
             </div>
@@ -223,19 +162,27 @@ const VideoCall = () => {
                 {contact?.display_name || contact?.username || "Utilisateur"}
               </h2>
               <p className="text-white/70 mt-2">
-                {callStatus === "connecting" && "Connexion..."}
+                {callStatus === "idle" && "Initialisation..."}
+                {callStatus === "calling" && "Connexion..."}
                 {callStatus === "ringing" && "Appel en cours..."}
-                {callStatus === "connected" && formatDuration(callDuration)}
+                {callStatus === "connected" && formatCallDuration(callDuration)}
                 {callStatus === "ended" && "Appel terminé"}
               </p>
+              {contact?.phone_number && (
+                <p className="text-white/50 text-sm mt-1">{contact.phone_number}</p>
+              )}
             </div>
           </div>
         )}
       </div>
 
       {/* Local video preview (for video calls) */}
-      {callType === "video" && !isVideoOff && (
-        <div className={`absolute ${isFullscreen ? "inset-0" : "top-20 right-4 w-32 h-44"} rounded-2xl overflow-hidden shadow-lg border-2 border-white/20 transition-all`}>
+      {callType === "video" && !isVideoOff && localStream && (
+        <div 
+          className={`absolute ${
+            isFullscreen ? "inset-0" : "top-20 right-4 w-32 h-44"
+          } rounded-2xl overflow-hidden shadow-lg border-2 border-white/20 transition-all`}
+        >
           <video
             ref={localVideoRef}
             autoPlay
@@ -261,7 +208,17 @@ const VideoCall = () => {
         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-green-500/20 rounded-full border border-green-500/50">
           <span className="text-green-400 text-sm font-medium flex items-center gap-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            {formatDuration(callDuration)}
+            {formatCallDuration(callDuration)}
+          </span>
+        </div>
+      )}
+
+      {/* Calling indicator */}
+      {(callStatus === "calling" || callStatus === "ringing") && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary/20 rounded-full border border-primary/50">
+          <span className="text-primary text-sm font-medium flex items-center gap-2">
+            <Phone className="w-4 h-4 animate-bounce" />
+            {callStatus === "calling" ? "Connexion..." : "Appel en cours..."}
           </span>
         </div>
       )}
@@ -273,7 +230,9 @@ const VideoCall = () => {
           <Button
             variant="ghost"
             size="icon"
-            className={`h-14 w-14 rounded-full ${isMuted ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"}`}
+            className={`h-14 w-14 rounded-full ${
+              isMuted ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"
+            }`}
             onClick={toggleMute}
           >
             {isMuted ? (
@@ -288,7 +247,9 @@ const VideoCall = () => {
             <Button
               variant="ghost"
               size="icon"
-              className={`h-14 w-14 rounded-full ${isVideoOff ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"}`}
+              className={`h-14 w-14 rounded-full ${
+                isVideoOff ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"
+              }`}
               onClick={toggleVideo}
             >
               {isVideoOff ? (
@@ -304,7 +265,7 @@ const VideoCall = () => {
             variant="ghost"
             size="icon"
             className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600"
-            onClick={endCall}
+            onClick={handleEndCall}
           >
             <PhoneOff className="w-7 h-7 text-white" />
           </Button>
@@ -325,7 +286,9 @@ const VideoCall = () => {
           <Button
             variant="ghost"
             size="icon"
-            className={`h-14 w-14 rounded-full ${isSpeakerOff ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"}`}
+            className={`h-14 w-14 rounded-full ${
+              isSpeakerOff ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"
+            }`}
             onClick={toggleSpeaker}
           >
             {isSpeakerOff ? (
