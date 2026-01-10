@@ -330,7 +330,10 @@ const Friends = () => {
     };
 
     return (
-      <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
+      <div 
+        className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow cursor-pointer"
+        onClick={() => navigate(`/group/${group.id}`)}
+      >
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="w-12 h-12">
             <AvatarImage src={group.avatar_url || ""} />
@@ -379,7 +382,10 @@ const Friends = () => {
     };
 
     return (
-      <div className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
+      <div 
+        className="p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow cursor-pointer"
+        onClick={() => navigate(`/community/${community.id}`)}
+      >
         <div className="flex items-center gap-3 mb-3">
           <Avatar className="w-12 h-12">
             <AvatarImage src={community.avatar_url || ""} />

@@ -19,9 +19,57 @@ import Friends from "./pages/Friends";
 import LiveStream from "./pages/LiveStream";
 import Discover from "./pages/Discover";
 import VideoCall from "./pages/VideoCall";
+import Calls from "./pages/Calls";
+import GroupDetails from "./pages/GroupDetails";
+import CommunityDetails from "./pages/CommunityDetails";
 import NotFound from "./pages/NotFound";
+import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { useIncomingCall } from "@/hooks/useIncomingCall";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  const { incomingCall, acceptCall, declineCall } = useIncomingCall();
+
+  return (
+    <>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/chat/:recipientId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/video" element={<ProtectedRoute><Video /></ProtectedRoute>} />
+        <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+        <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+        <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+        <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+        <Route path="/live/:streamId?" element={<ProtectedRoute><LiveStream /></ProtectedRoute>} />
+        <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
+        <Route path="/call/:contactId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
+        <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
+        <Route path="/group/:groupId" element={<ProtectedRoute><GroupDetails /></ProtectedRoute>} />
+        <Route path="/community/:communityId" element={<ProtectedRoute><CommunityDetails /></ProtectedRoute>} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      
+      {incomingCall && (
+        <IncomingCallModal
+          isOpen={true}
+          callerName={incomingCall.callerName}
+          callerAvatar={incomingCall.callerAvatar}
+          callType={incomingCall.callType}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+        />
+      )}
+    </>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,26 +77,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/chat/:recipientId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-          <Route path="/video" element={<ProtectedRoute><Video /></ProtectedRoute>} />
-          <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
-          <Route path="/interests" element={<ProtectedRoute><Interests /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-          <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
-          <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
-          <Route path="/live/:streamId?" element={<ProtectedRoute><LiveStream /></ProtectedRoute>} />
-          <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
-          <Route path="/call/:contactId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppContent />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
