@@ -381,6 +381,7 @@ export type Database = {
           id: string
           media_type: string | null
           media_url: string | null
+          reply_to_id: string | null
           user_id: string
         }
         Insert: {
@@ -391,6 +392,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          reply_to_id?: string | null
           user_id: string
         }
         Update: {
@@ -401,6 +403,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          reply_to_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -416,6 +419,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -739,6 +749,30 @@ export type Database = {
           profession?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
