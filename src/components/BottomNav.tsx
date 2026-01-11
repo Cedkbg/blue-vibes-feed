@@ -13,7 +13,7 @@ const navItems: NavItem[] = [
   { icon: Video, label: "Vidéos", path: "/video" },
   { icon: Users, label: "Amis", path: "/friends" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
-  { icon: PhoneCall, label: "Appels", path: "/discover" },
+  { icon: PhoneCall, label: "Appels", path: "/calls" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
 

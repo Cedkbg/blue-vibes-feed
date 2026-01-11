@@ -14,7 +14,7 @@ import { useGroupMembership } from "@/hooks/useGroupMembership";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, MessageCircle, Send, ArrowLeft, Crown, 
-  LogOut, UserPlus, BadgeCheck, Globe 
+  LogOut, UserPlus, BadgeCheck, Globe, Paperclip, X, FileText
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -57,6 +57,10 @@ const CommunityDetails = () => {
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isMember = communityId ? isMemberOfCommunity(communityId) : false;
@@ -119,13 +123,82 @@ const CommunityDetails = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Le fichier est trop volumineux (max 10MB)");
+        return;
+      }
+      setSelectedFile(file);
+      
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => setFilePreview(e.target?.result as string);
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview(null);
+      }
+    }
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<{ url: string; type: string } | null> => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${communityId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("media")
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast.error("Erreur lors de l'upload du fichier");
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("media")
+        .getPublicUrl(fileName);
+
+      const mediaType = file.type.startsWith("image/") ? "image" : "file";
+      return { url: publicUrl, type: mediaType };
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      return null;
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!messageText.trim() || sending) return;
+    if ((!messageText.trim() && !selectedFile) || sending) return;
 
     setSending(true);
-    await sendMessage(messageText);
+    setUploading(selectedFile !== null);
+
+    let mediaUrl: string | undefined;
+    let mediaType: string | undefined;
+
+    if (selectedFile) {
+      const uploadResult = await uploadFile(selectedFile);
+      if (uploadResult) {
+        mediaUrl = uploadResult.url;
+        mediaType = uploadResult.type;
+      }
+    }
+
+    await sendMessage(messageText, mediaUrl, mediaType);
     setMessageText("");
+    clearSelectedFile();
     setSending(false);
+    setUploading(false);
   };
 
   const handleJoinLeave = async () => {
@@ -165,7 +238,26 @@ const CommunityDetails = () => {
                 : "bg-muted text-foreground"
             }`}
           >
-            <p className="text-sm">{message.content}</p>
+            {message.media_url && message.media_type === "image" && (
+              <img 
+                src={message.media_url} 
+                alt="Image partagée" 
+                className="rounded-lg max-w-full mb-2 cursor-pointer"
+                onClick={() => window.open(message.media_url!, "_blank")}
+              />
+            )}
+            {message.media_url && message.media_type === "file" && (
+              <a 
+                href={message.media_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 bg-background/20 rounded-lg mb-2 hover:bg-background/30 transition-colors"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="text-sm underline">Télécharger le fichier</span>
+              </a>
+            )}
+            {message.content && <p className="text-sm">{message.content}</p>}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {format(new Date(message.created_at), "HH:mm")}
@@ -339,18 +431,55 @@ const CommunityDetails = () => {
                   )}
                 </ScrollArea>
 
+                {/* File preview */}
+                {selectedFile && (
+                  <div className="mb-2 p-2 bg-muted rounded-lg flex items-center gap-2">
+                    {filePreview ? (
+                      <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
+                    ) : (
+                      <div className="w-16 h-16 bg-background rounded flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={clearSelectedFile}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-4 pt-4 border-t">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
                   <Input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     placeholder="Écrire un message..."
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                     disabled={sending}
                   />
                   <Button
                     size="icon"
                     onClick={handleSendMessage}
-                    disabled={!messageText.trim() || sending}
+                    disabled={(!messageText.trim() && !selectedFile) || sending}
                   >
                     <Send className="w-4 h-4" />
                   </Button>
