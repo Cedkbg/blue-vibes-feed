@@ -10,12 +10,14 @@ export interface GroupMessage {
   content: string;
   media_url: string | null;
   media_type: string | null;
+  reply_to_id: string | null;
   created_at: string;
   profile?: {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
   };
+  reply_to?: GroupMessage;
 }
 
 interface UseGroupChatOptions {
@@ -64,10 +66,31 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
         profiles?.map((p) => [p.id, p]) || []
       );
 
+      // Fetch reply messages
+      const replyIds = data.filter(m => m.reply_to_id).map(m => m.reply_to_id);
+      let replyMap = new Map<string, GroupMessage>();
+      
+      if (replyIds.length > 0) {
+        const { data: replies } = await supabase
+          .from("group_messages")
+          .select("*")
+          .in("id", replyIds);
+        
+        if (replies) {
+          for (const reply of replies) {
+            replyMap.set(reply.id, {
+              ...reply,
+              profile: profileMap.get(reply.user_id),
+            });
+          }
+        }
+      }
+
       setMessages(
         data.map((m) => ({
           ...m,
           profile: profileMap.get(m.user_id),
+          reply_to: m.reply_to_id ? replyMap.get(m.reply_to_id) : undefined,
         }))
       );
     } else {
@@ -78,7 +101,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
   }, [groupId, communityId]);
 
   const sendMessage = useCallback(
-    async (content: string, mediaUrl?: string, mediaType?: string) => {
+    async (content: string, mediaUrl?: string, mediaType?: string, replyToId?: string) => {
       if (!user || (!groupId && !communityId) || (!content.trim() && !mediaUrl)) return null;
 
       const { data, error } = await supabase
@@ -90,6 +113,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
           content: content.trim() || "",
           media_url: mediaUrl || null,
           media_type: mediaType || null,
+          reply_to_id: replyToId || null,
         })
         .select()
         .single();
@@ -102,6 +126,27 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
       return data;
     },
     [user, groupId, communityId]
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!user) return false;
+
+      const { error } = await supabase
+        .from("group_messages")
+        .delete()
+        .eq("id", messageId)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error deleting message:", error);
+        return false;
+      }
+
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      return true;
+    },
+    [user]
   );
 
   // Subscribe to realtime updates
@@ -130,10 +175,34 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
             .eq("id", newMessage.user_id)
             .single();
 
+          // Fetch reply if exists
+          let replyTo: GroupMessage | undefined;
+          if (newMessage.reply_to_id) {
+            const existingReply = messages.find(m => m.id === newMessage.reply_to_id);
+            if (existingReply) {
+              replyTo = existingReply;
+            }
+          }
+
           setMessages((prev) => [
             ...prev,
-            { ...newMessage, profile: profile || undefined },
+            { ...newMessage, profile: profile || undefined, reply_to: replyTo },
           ]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "group_messages",
+          filter: groupId 
+            ? `group_id=eq.${groupId}` 
+            : `community_id=eq.${communityId}`,
+        },
+        (payload) => {
+          const deletedId = (payload.old as { id: string }).id;
+          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         }
       )
       .subscribe();
@@ -141,7 +210,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [groupId, communityId]);
+  }, [groupId, communityId, messages]);
 
   useEffect(() => {
     fetchMessages();
@@ -151,6 +220,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
     messages,
     loading,
     sendMessage,
+    deleteMessage,
     fetchMessages,
   };
 };

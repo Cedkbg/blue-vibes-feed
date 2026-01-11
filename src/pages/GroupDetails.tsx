@@ -12,14 +12,31 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGroupChat, GroupMessage } from "@/hooks/useGroupChat";
 import { useGroupMembership } from "@/hooks/useGroupMembership";
 import { supabase } from "@/integrations/supabase/client";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { 
   Users, MessageCircle, Send, ArrowLeft, Crown, 
-  Settings, LogOut, UserPlus, BadgeCheck, Paperclip, Image as ImageIcon, X, FileText
+  LogOut, UserPlus, BadgeCheck, Paperclip, X, FileText, Trash2, Reply, CornerUpLeft
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface GroupInfo {
   id: string;
@@ -49,7 +66,8 @@ const GroupDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isMemberOfGroup, joinGroup, leaveGroup } = useGroupMembership();
-  const { messages, loading: messagesLoading, sendMessage } = useGroupChat({ groupId });
+  const { messages, loading: messagesLoading, sendMessage, deleteMessage } = useGroupChat({ groupId });
+  const { permission, requestPermission, isSupported } = usePushNotifications();
   
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [members, setMembers] = useState<MemberInfo[]>([]);
@@ -59,6 +77,8 @@ const GroupDetails = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<GroupMessage | null>(null);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -193,11 +213,23 @@ const GroupDetails = () => {
       }
     }
 
-    await sendMessage(messageText, mediaUrl, mediaType);
+    await sendMessage(messageText, mediaUrl, mediaType, replyingTo?.id);
     setMessageText("");
     clearSelectedFile();
+    setReplyingTo(null);
     setSending(false);
     setUploading(false);
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete) return;
+    const success = await deleteMessage(messageToDelete);
+    if (success) {
+      toast.success("Message supprimé");
+    } else {
+      toast.error("Erreur lors de la suppression");
+    }
+    setMessageToDelete(null);
   };
 
   const handleJoinLeave = async () => {
@@ -215,7 +247,7 @@ const GroupDetails = () => {
     const isOwn = message.user_id === user?.id;
 
     return (
-      <div className={`flex gap-2 mb-3 ${isOwn ? "flex-row-reverse" : ""}`}>
+      <div className={`flex gap-2 mb-3 group ${isOwn ? "flex-row-reverse" : ""}`}>
         {!isOwn && (
           <Avatar className="w-8 h-8">
             <AvatarImage src={message.profile?.avatar_url || ""} />
@@ -230,34 +262,80 @@ const GroupDetails = () => {
               {message.profile?.display_name || message.profile?.username}
             </p>
           )}
-          <div
-            className={`rounded-2xl px-4 py-2 ${
-              isOwn
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-foreground"
-            }`}
-          >
-            {message.media_url && message.media_type === "image" && (
-              <img 
-                src={message.media_url} 
-                alt="Image partagée" 
-                className="rounded-lg max-w-full mb-2 cursor-pointer"
-                onClick={() => window.open(message.media_url!, "_blank")}
-              />
-            )}
-            {message.media_url && message.media_type === "file" && (
-              <a 
-                href={message.media_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 p-2 bg-background/20 rounded-lg mb-2 hover:bg-background/30 transition-colors"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="text-sm underline">Télécharger le fichier</span>
-              </a>
-            )}
-            {message.content && <p className="text-sm">{message.content}</p>}
+          
+          {/* Reply preview */}
+          {message.reply_to && (
+            <div className={`text-xs p-2 rounded-lg mb-1 border-l-2 border-primary/50 ${
+              isOwn ? "bg-primary/20" : "bg-muted/50"
+            }`}>
+              <span className="font-medium text-muted-foreground">
+                {message.reply_to.profile?.display_name || "Utilisateur"}
+              </span>
+              <p className="truncate opacity-70">
+                {message.reply_to.content || "Fichier"}
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            <div
+              className={`rounded-2xl px-4 py-2 ${
+                isOwn
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
+              }`}
+            >
+              {message.media_url && message.media_type === "image" && (
+                <img 
+                  src={message.media_url} 
+                  alt="Image partagée" 
+                  className="rounded-lg max-w-full mb-2 cursor-pointer"
+                  onClick={() => window.open(message.media_url!, "_blank")}
+                />
+              )}
+              {message.media_url && message.media_type === "file" && (
+                <a 
+                  href={message.media_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-2 bg-background/20 rounded-lg mb-2 hover:bg-background/30 transition-colors"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="text-sm underline">Télécharger le fichier</span>
+                </a>
+              )}
+              {message.content && <p className="text-sm">{message.content}</p>}
+            </div>
+
+            {/* Message actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <CornerUpLeft className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align={isOwn ? "end" : "start"}>
+                <DropdownMenuItem onClick={() => setReplyingTo(message)}>
+                  <Reply className="w-4 h-4 mr-2" />
+                  Répondre
+                </DropdownMenuItem>
+                {isOwn && (
+                  <DropdownMenuItem 
+                    onClick={() => setMessageToDelete(message.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Supprimer
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
           <p className="text-xs text-muted-foreground mt-1">
             {format(new Date(message.created_at), "HH:mm")}
           </p>
@@ -425,6 +503,24 @@ const GroupDetails = () => {
                   )}
                 </ScrollArea>
 
+                {/* Reply preview */}
+                {replyingTo && (
+                  <div className="mb-2 p-2 bg-primary/10 border-l-2 border-primary rounded-lg flex items-center gap-2">
+                    <Reply className="w-4 h-4 text-primary" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium">
+                        Répondre à {replyingTo.profile?.display_name || "Utilisateur"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {replyingTo.content || "Fichier"}
+                      </p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="w-6 h-6" onClick={() => setReplyingTo(null)}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+
                 {/* File preview */}
                 {selectedFile && (
                   <div className="mb-2 p-2 bg-muted rounded-lg flex items-center gap-2">
@@ -466,7 +562,7 @@ const GroupDetails = () => {
                   <Input
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Écrire un message..."
+                    placeholder={replyingTo ? "Écrire une réponse..." : "Écrire un message..."}
                     onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                     disabled={sending}
                   />
@@ -505,6 +601,24 @@ const GroupDetails = () => {
       </div>
 
       <BottomNav />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!messageToDelete} onOpenChange={() => setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le message ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le message sera supprimé pour tous les membres.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteMessage} className="bg-destructive text-destructive-foreground">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
