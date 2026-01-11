@@ -8,6 +8,8 @@ export interface GroupMessage {
   community_id: string | null;
   user_id: string;
   content: string;
+  media_url: string | null;
+  media_type: string | null;
   created_at: string;
   profile?: {
     display_name: string | null;
@@ -76,8 +78,8 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
   }, [groupId, communityId]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!user || (!groupId && !communityId) || !content.trim()) return null;
+    async (content: string, mediaUrl?: string, mediaType?: string) => {
+      if (!user || (!groupId && !communityId) || (!content.trim() && !mediaUrl)) return null;
 
       const { data, error } = await supabase
         .from("group_messages")
@@ -85,7 +87,9 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
           user_id: user.id,
           group_id: groupId || null,
           community_id: communityId || null,
-          content: content.trim(),
+          content: content.trim() || "",
+          media_url: mediaUrl || null,
+          media_type: mediaType || null,
         })
         .select()
         .single();

@@ -379,6 +379,8 @@ export type Database = {
           created_at: string
           group_id: string | null
           id: string
+          media_type: string | null
+          media_url: string | null
           user_id: string
         }
         Insert: {
@@ -387,6 +389,8 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           user_id: string
         }
         Update: {
@@ -395,6 +399,8 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           user_id?: string
         }
         Relationships: [

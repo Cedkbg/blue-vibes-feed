@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+// Reference to store call record ID for updating
+let currentCallRecordId: string | null = null;
+
 interface CallSignal {
   id: string;
   caller_id: string;
@@ -93,11 +96,20 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
     };
 
     // Connection state changes
-    pc.onconnectionstatechange = () => {
+    pc.onconnectionstatechange = async () => {
       console.log("Connection state:", pc.connectionState);
       if (pc.connectionState === "connected") {
         setCallStatus("connected");
         onCallConnected?.();
+        
+        // Update call record to connected
+        if (currentCallRecordId) {
+          await supabase
+            .from("call_history")
+            .update({ status: "connected" })
+            .eq("id", currentCallRecordId);
+        }
+        
         // Start call timer
         callTimerRef.current = setInterval(() => {
           setCallDuration((prev) => prev + 1);
@@ -117,6 +129,22 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
 
     try {
       setCallStatus("calling");
+      
+      // Create call history record
+      const { data: callRecord } = await supabase
+        .from("call_history")
+        .insert({
+          caller_id: user.id,
+          callee_id: contactId,
+          call_type: callType,
+          status: "calling",
+        })
+        .select()
+        .single();
+      
+      if (callRecord) {
+        currentCallRecordId = callRecord.id;
+      }
       
       // Initialize local stream
       await initLocalStream();
@@ -297,6 +325,19 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
 
   // End call
   const endCall = useCallback(async () => {
+    // Update call history record with duration
+    if (currentCallRecordId) {
+      await supabase
+        .from("call_history")
+        .update({
+          status: callDuration > 0 ? "completed" : "missed",
+          ended_at: new Date().toISOString(),
+          duration_seconds: callDuration,
+        })
+        .eq("id", currentCallRecordId);
+      currentCallRecordId = null;
+    }
+    
     // Send end signal
     if (user && contactId) {
       await supabase.from("call_signals").insert({
