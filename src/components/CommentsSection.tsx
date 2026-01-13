@@ -146,29 +146,22 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
       toast.error("Erreur lors de l'ajout du commentaire");
       console.error(error);
     } else {
-      // Increment comments_count on the post
+      // Comments count is now handled by database trigger
+      // Send notification to post owner (if not commenting on own post)
       const { data: postData } = await supabase
         .from("posts")
-        .select("comments_count, user_id")
+        .select("user_id")
         .eq("id", postId)
         .single();
       
-      if (postData) {
-        await supabase
-          .from("posts")
-          .update({ comments_count: (postData.comments_count || 0) + 1 })
-          .eq("id", postId);
-        
-        // Send notification to post owner (if not commenting on own post)
-        if (postData.user_id !== user.id) {
-          await supabase.from("notifications").insert({
-            user_id: postData.user_id,
-            type: "comment",
-            content: "a commenté votre publication",
-            from_user_id: user.id,
-            post_id: postId,
-          });
-        }
+      if (postData && postData.user_id !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: postData.user_id,
+          type: "comment",
+          content: "a commenté votre publication",
+          from_user_id: user.id,
+          post_id: postId,
+        });
       }
       
       setNewComment("");
@@ -176,6 +169,8 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
       if (replyTo) {
         setExpandedReplies(prev => new Set([...prev, replyTo.id]));
       }
+      // Refresh comments to get accurate count
+      fetchComments();
     }
   };
 

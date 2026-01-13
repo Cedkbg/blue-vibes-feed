@@ -33,13 +33,29 @@ export const ChannelCard = ({
 }: ChannelCardProps) => {
   const navigate = useNavigate();
 
-  const handleSubscribersClick = () => {
-    // Navigate to channel owner's profile
+  const handleCardClick = () => {
+    navigate(`/channel/${channel.id}`);
+  };
+
+  const handleSubscribersClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigate(`/profile/${channel.user_id}`);
   };
 
+  const handleSubscribeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSubscribed) {
+      onUnsubscribe();
+    } else {
+      onSubscribe();
+    }
+  };
+
   return (
-    <Card className="group hover:shadow-medium transition-smooth overflow-hidden border-border/50">
+    <Card 
+      className="group hover:shadow-medium transition-smooth overflow-hidden border-border/50 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <Avatar className="w-14 h-14 border-2 border-primary/20 group-hover:border-primary transition-colors">
@@ -78,7 +94,7 @@ export const ChannelCard = ({
             size="sm"
             variant={isSubscribed ? "outline" : "default"}
             className={`rounded-xl ${!isSubscribed ? "gradient-primary hover:opacity-90" : ""}`}
-            onClick={isSubscribed ? onUnsubscribe : onSubscribe}
+            onClick={handleSubscribeClick}
           >
             {isSubscribed ? "Abonné" : "S'abonner"}
           </Button>
