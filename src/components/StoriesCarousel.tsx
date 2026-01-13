@@ -1,13 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, X, ChevronLeft, ChevronRight, Eye, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, X, ChevronLeft, ChevronRight, Eye, Clock, Loader2 } from "lucide-react";
 import { useStories } from "@/hooks/useStories";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-
+import { toast } from "sonner";
 interface StoryViewerProps {
   stories: any[];
   initialIndex: number;
@@ -152,11 +154,69 @@ const StoryViewer = ({ stories, initialIndex, onClose, onView }: StoryViewerProp
 
 export const StoriesCarousel = () => {
   const { user } = useAuth();
-  const { groupedStories, loading, viewStory, viewedStoryIds } = useStories();
+  const { groupedStories, loading, viewStory, viewedStoryIds, createStory, refetch } = useStories();
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleAddStory = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+
+    if (!isVideo && !isImage) {
+      toast.error("Veuillez sélectionner une image ou une vidéo");
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux (max 50MB)");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("media")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
+
+      const story = await createStory(
+        urlData.publicUrl,
+        isVideo ? "video" : "image"
+      );
+
+      if (story) {
+        toast.success("Statut publié !");
+        refetch();
+      } else {
+        throw new Error("Erreur lors de la création du statut");
+      }
+    } catch (error) {
+      console.error("Error uploading story:", error);
+      toast.error("Erreur lors de la publication du statut");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
   const handleOpenStory = (group: any) => {
     setSelectedGroup(group);
     setIsViewerOpen(true);
@@ -193,11 +253,26 @@ export const StoriesCarousel = () => {
         {/* Add Story Button */}
         {user && (
           <div className="flex flex-col items-center gap-2 shrink-0">
-            <button className="relative w-16 h-16 rounded-full border-2 border-dashed border-primary flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors">
-              <Plus className="w-6 h-6 text-primary" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button 
+              onClick={handleAddStory}
+              disabled={isUploading}
+              className="relative w-16 h-16 rounded-full border-2 border-dashed border-primary flex items-center justify-center bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {isUploading ? (
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              ) : (
+                <Plus className="w-6 h-6 text-primary" />
+              )}
             </button>
             <span className="text-xs text-muted-foreground font-medium">
-              Ajouter
+              {isUploading ? "Envoi..." : "Ajouter"}
             </span>
           </div>
         )}
