@@ -22,6 +22,7 @@ import VideoCall from "./pages/VideoCall";
 import Calls from "./pages/Calls";
 import GroupDetails from "./pages/GroupDetails";
 import CommunityDetails from "./pages/CommunityDetails";
+import ChannelDetails from "./pages/ChannelDetails";
 import NotFound from "./pages/NotFound";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
@@ -53,6 +54,7 @@ const AppContent = () => {
         <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
         <Route path="/group/:groupId" element={<ProtectedRoute><GroupDetails /></ProtectedRoute>} />
         <Route path="/community/:communityId" element={<ProtectedRoute><CommunityDetails /></ProtectedRoute>} />
+        <Route path="/channel/:channelId" element={<ProtectedRoute><ChannelDetails /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
