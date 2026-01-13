@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MoreVertical } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Phone, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -209,6 +209,22 @@ const Chat = () => {
           </h1>
           <p className="text-xs text-primary-foreground/70">En ligne</p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-primary-foreground hover:bg-primary-foreground/10"
+          onClick={() => navigate(`/call/${recipientId}?type=audio`)}
+        >
+          <Phone className="w-5 h-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-primary-foreground hover:bg-primary-foreground/10"
+          onClick={() => navigate(`/call/${recipientId}?type=video`)}
+        >
+          <Video className="w-5 h-5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
