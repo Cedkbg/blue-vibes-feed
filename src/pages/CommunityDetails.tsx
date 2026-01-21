@@ -15,8 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { 
   Users, MessageCircle, Send, ArrowLeft, Crown, 
-  LogOut, UserPlus, BadgeCheck, Globe, Paperclip, X, FileText, Trash2, Reply, CornerUpLeft
+  LogOut, UserPlus, BadgeCheck, Globe, Paperclip, X, FileText, Trash2, Reply, CornerUpLeft, Plus
 } from "lucide-react";
+import { CreateContentModal } from "@/components/CreateContentModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -80,6 +81,7 @@ const CommunityDetails = () => {
   const [uploading, setUploading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<GroupMessage | null>(null);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [showCreateContent, setShowCreateContent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -464,6 +466,20 @@ const CommunityDetails = () => {
           )}
         </div>
 
+        {/* Add content button for members */}
+        {isMember && (
+          <div className="px-4 mb-4">
+            <Button 
+              onClick={() => setShowCreateContent(true)} 
+              variant="outline" 
+              className="w-full gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Partager du contenu
+            </Button>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="chat" className="px-4">
           <TabsList className="w-full mb-4">
@@ -625,6 +641,17 @@ const CommunityDetails = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Content Modal */}
+      {community && (
+        <CreateContentModal
+          open={showCreateContent}
+          onOpenChange={setShowCreateContent}
+          type="community"
+          targetId={community.id}
+          targetName={community.name}
+        />
+      )}
     </div>
   );
 };
