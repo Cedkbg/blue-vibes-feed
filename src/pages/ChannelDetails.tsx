@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, BadgeCheck, Share2, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Users, BadgeCheck, Share2, Bell, BellOff, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChannels } from "@/hooks/useChannels";
 import { toast } from "sonner";
+import { CreateContentModal } from "@/components/CreateContentModal";
 
 interface Channel {
   id: string;
@@ -39,6 +40,7 @@ const ChannelDetails = () => {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [owner, setOwner] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreateContent, setShowCreateContent] = useState(false);
 
   const isSubscribed = channelId ? subscribedChannelIds.includes(channelId) : false;
   const isOwner = user?.id === channel?.user_id;
@@ -234,13 +236,36 @@ const ChannelDetails = () => {
           </Card>
         )}
 
-        {/* Content placeholder */}
+        {/* Content section */}
         <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Contenu de la chaîne à venir...
-          </p>
+          {isOwner ? (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Commencez à publier du contenu sur votre chaîne
+              </p>
+              <Button onClick={() => setShowCreateContent(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Créer un post
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              Aucun contenu pour le moment
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Create Content Modal */}
+      {channel && (
+        <CreateContentModal
+          open={showCreateContent}
+          onOpenChange={setShowCreateContent}
+          type="channel"
+          targetId={channel.id}
+          targetName={channel.name}
+        />
+      )}
     </div>
   );
 };

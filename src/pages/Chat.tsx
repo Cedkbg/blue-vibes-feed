@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MoreVertical, Phone, Video } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Phone, Video, X, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +14,8 @@ interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
+  reply_to_id?: string | null;
+  reply_to?: Message | null;
 }
 
 interface Profile {
@@ -31,7 +33,9 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState("");
   const [recipient, setRecipient] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,7 +74,32 @@ const Chat = () => {
         .order("created_at", { ascending: true });
 
       if (data) {
-        setMessages(data);
+        // Cast to include reply_to_id which may not be in types yet
+        const messagesData = data as any[];
+        
+        // Fetch reply messages
+        const replyIds = messagesData.filter(m => m.reply_to_id).map(m => m.reply_to_id);
+        let replyMap = new Map<string, Message>();
+
+        if (replyIds.length > 0) {
+          const { data: replies } = await supabase
+            .from("messages")
+            .select("*")
+            .in("id", replyIds);
+
+          if (replies) {
+            for (const reply of replies) {
+              replyMap.set(reply.id, reply as Message);
+            }
+          }
+        }
+
+        setMessages(
+          messagesData.map((m) => ({
+            ...m,
+            reply_to: m.reply_to_id ? replyMap.get(m.reply_to_id) : null,
+          }))
+        );
       }
       setIsLoading(false);
     };
@@ -105,14 +134,32 @@ const Chat = () => {
           schema: "public",
           table: "messages",
         },
-        (payload) => {
+        async (payload) => {
           const newMsg = payload.new as Message;
           // Only add if it's part of this conversation
           if (
             (newMsg.sender_id === user.id && newMsg.receiver_id === recipientId) ||
             (newMsg.sender_id === recipientId && newMsg.receiver_id === user.id)
           ) {
-            setMessages((prev) => [...prev, newMsg]);
+            // Fetch reply if exists
+            let replyMessage: Message | null = null;
+            if (newMsg.reply_to_id) {
+              const existing = messages.find(m => m.id === newMsg.reply_to_id);
+              if (existing) {
+                replyMessage = existing;
+              } else {
+                const { data } = await supabase
+                  .from("messages")
+                  .select("*")
+                  .eq("id", newMsg.reply_to_id)
+                  .single();
+                if (data) {
+                  replyMessage = data;
+                }
+              }
+            }
+
+            setMessages((prev) => [...prev, { ...newMsg, reply_to: replyMessage }]);
             
             // Mark as read if received
             if (newMsg.sender_id === recipientId) {
@@ -129,23 +176,39 @@ const Chat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, recipientId]);
+  }, [user, recipientId, messages]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  const handleReply = (message: Message) => {
+    setReplyTo(message);
+    inputRef.current?.focus();
+  };
+
+  const cancelReply = () => {
+    setReplyTo(null);
+  };
+
   const sendMessage = async () => {
     if (!user || !recipientId || !newMessage.trim()) return;
 
-    const { error } = await supabase.from("messages").insert({
+    const messageData: any = {
       sender_id: user.id,
       receiver_id: recipientId,
       content: newMessage.trim(),
-    });
+    };
+
+    if (replyTo) {
+      messageData.reply_to_id = replyTo.id;
+    }
+
+    const { error } = await supabase.from("messages").insert(messageData);
 
     if (!error) {
       setNewMessage("");
+      setReplyTo(null);
       
       // Update or create conversation
       const [user1, user2] = [user.id, recipientId].sort();
@@ -183,6 +246,13 @@ const Chat = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const getMessageSenderName = (senderId: string) => {
+    if (senderId === user?.id) {
+      return "Vous";
+    }
+    return recipient?.display_name || recipient?.username || "Utilisateur";
   };
 
   return (
@@ -254,20 +324,58 @@ const Chat = () => {
                 className={`flex ${isMine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[75%] px-4 py-2 rounded-2xl ${
+                  className={`max-w-[75%] ${
                     isMine
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm"
+                      ? "bg-primary text-primary-foreground rounded-2xl rounded-br-sm"
+                      : "bg-muted text-foreground rounded-2xl rounded-bl-sm"
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      isMine ? "text-primary-foreground/70" : "text-muted-foreground"
-                    }`}
-                  >
-                    {formatTime(message.created_at)}
-                  </p>
+                  {/* Reply preview */}
+                  {message.reply_to && (
+                    <div
+                      className={`px-3 pt-2 pb-1 border-l-2 ${
+                        isMine
+                          ? "border-primary-foreground/50 bg-primary-foreground/10"
+                          : "border-primary/50 bg-primary/10"
+                      } rounded-t-2xl`}
+                    >
+                      <p
+                        className={`text-xs font-medium ${
+                          isMine ? "text-primary-foreground/80" : "text-primary"
+                        }`}
+                      >
+                        {getMessageSenderName(message.reply_to.sender_id)}
+                      </p>
+                      <p
+                        className={`text-xs truncate ${
+                          isMine ? "text-primary-foreground/60" : "text-muted-foreground"
+                        }`}
+                      >
+                        {message.reply_to.content}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="px-4 py-2">
+                    <p className="text-sm">{message.content}</p>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <button
+                        onClick={() => handleReply(message)}
+                        className={`text-xs ${
+                          isMine ? "text-primary-foreground/50 hover:text-primary-foreground/80" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Reply className="w-3 h-3" />
+                      </button>
+                      <p
+                        className={`text-xs ${
+                          isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatTime(message.created_at)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -276,14 +384,37 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Reply preview bar */}
+      {replyTo && (
+        <div className="px-4 py-2 bg-muted/50 border-t border-border flex items-center gap-3">
+          <div className="flex-1 border-l-2 border-primary pl-3">
+            <p className="text-xs font-medium text-primary">
+              Réponse à {getMessageSenderName(replyTo.sender_id)}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {replyTo.content}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={cancelReply}
+            className="h-8 w-8"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-4 border-t border-border bg-background sticky bottom-0">
         <div className="flex items-center gap-2">
           <Input
+            ref={inputRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Écrire un message..."
+            placeholder={replyTo ? "Répondre..." : "Écrire un message..."}
             className="flex-1 rounded-full"
           />
           <Button
