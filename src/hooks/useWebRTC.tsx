@@ -19,6 +19,7 @@ interface CallSignal {
 interface UseWebRTCOptions {
   contactId: string;
   callType: "video" | "audio";
+  isIncoming?: boolean;
   onCallEnded?: () => void;
   onCallConnected?: () => void;
 }
@@ -29,7 +30,7 @@ const ICE_SERVERS = [
   { urls: "stun:stun2.l.google.com:19302" },
 ];
 
-export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }: UseWebRTCOptions) => {
+export const useWebRTC = ({ contactId, callType, isIncoming, onCallEnded, onCallConnected }: UseWebRTCOptions) => {
   const { user } = useAuth();
   const [callStatus, setCallStatus] = useState<"idle" | "calling" | "ringing" | "connected" | "ended">("idle");
   const [isMuted, setIsMuted] = useState(false);
@@ -174,7 +175,7 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
     }
   }, [user, contactId, callType, initLocalStream, createPeerConnection]);
 
-  // Answer a call (as callee)
+  // Answer a call (as callee) with provided offer
   const answerCall = useCallback(async (offer: RTCSessionDescriptionInit) => {
     if (!user) return;
 
@@ -206,6 +207,62 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
       console.log("Call answer sent");
     } catch (error) {
       console.error("Error answering call:", error);
+      setCallStatus("ended");
+      toast.error("Erreur lors de la réponse à l'appel");
+    }
+  }, [user, contactId, callType, initLocalStream, createPeerConnection]);
+
+  // Answer incoming call - fetches the offer from call_signals and answers
+  const answerIncoming = useCallback(async () => {
+    if (!user || !contactId) return;
+
+    try {
+      setCallStatus("ringing");
+      
+      // Fetch the most recent offer from the caller
+      const { data: signals, error } = await supabase
+        .from("call_signals")
+        .select("*")
+        .eq("caller_id", contactId)
+        .eq("callee_id", user.id)
+        .eq("signal_type", "offer")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error || !signals || signals.length === 0) {
+        console.error("No offer found for incoming call");
+        toast.error("Appel non trouvé");
+        setCallStatus("ended");
+        return;
+      }
+
+      const offer = signals[0].signal_data as unknown as RTCSessionDescriptionInit;
+      
+      // Initialize local stream
+      await initLocalStream();
+      
+      // Create peer connection
+      const pc = createPeerConnection();
+
+      // Set remote description (the offer)
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+      // Create answer
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      // Send answer signal
+      await supabase.from("call_signals").insert({
+        caller_id: user.id,
+        callee_id: contactId,
+        call_type: callType,
+        signal_type: "answer",
+        signal_data: answer as any,
+      } as any);
+
+      console.log("Call answer sent for incoming call");
+    } catch (error) {
+      console.error("Error answering incoming call:", error);
       setCallStatus("ended");
       toast.error("Erreur lors de la réponse à l'appel");
     }
@@ -400,6 +457,7 @@ export const useWebRTC = ({ contactId, callType, onCallEnded, onCallConnected }:
     callDuration,
     startCall,
     answerCall,
+    answerIncoming,
     endCall,
     toggleMute,
     toggleVideo,

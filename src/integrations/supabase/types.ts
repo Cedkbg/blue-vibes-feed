@@ -184,6 +184,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_comments_parent"
             columns: ["parent_id"]
             isOneToOne: false
@@ -653,8 +660,11 @@ export type Database = {
       posts: {
         Row: {
           caption: string | null
+          channel_id: string | null
           comments_count: number
+          community_id: string | null
           created_at: string
+          group_id: string | null
           id: string
           likes_count: number
           media_type: string | null
@@ -664,8 +674,11 @@ export type Database = {
         }
         Insert: {
           caption?: string | null
+          channel_id?: string | null
           comments_count?: number
+          community_id?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           likes_count?: number
           media_type?: string | null
@@ -675,8 +688,11 @@ export type Database = {
         }
         Update: {
           caption?: string | null
+          channel_id?: string | null
           comments_count?: number
+          community_id?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           likes_count?: number
           media_type?: string | null
@@ -684,7 +700,29 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

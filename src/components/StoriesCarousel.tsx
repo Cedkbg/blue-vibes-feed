@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, X, ChevronLeft, ChevronRight, Eye, Clock } from "lucide-react";
 import { useStories } from "@/hooks/useStories";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateStoryModal } from "@/components/CreateStoryModal";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 interface StoryViewerProps {
   stories: any[];
   initialIndex: number;
@@ -257,7 +258,10 @@ export const StoriesCarousel = () => {
 
       {/* Story Viewer Dialog */}
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-lg h-[90vh] p-0 bg-transparent border-none">
+        <DialogContent className="max-w-lg h-[90vh] p-0 bg-transparent border-none" aria-describedby={undefined}>
+          <VisuallyHidden>
+            <DialogTitle>Visualiseur de statut</DialogTitle>
+          </VisuallyHidden>
           {selectedGroup && (
             <StoryViewer
               stories={selectedGroup.stories}

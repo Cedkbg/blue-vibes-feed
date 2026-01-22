@@ -83,14 +83,21 @@ export const CreateContentModal = ({
       }
 
       // Create a post with reference to the channel/group/community
+      const postData: any = {
+        user_id: user.id,
+        caption: caption.trim() || null,
+        media_url: mediaUrl,
+        media_type: mediaType || "text",
+      };
+      
+      // Add the correct reference based on type
+      if (type === "channel") postData.channel_id = targetId;
+      if (type === "group") postData.group_id = targetId;
+      if (type === "community") postData.community_id = targetId;
+
       const { error: postError } = await supabase
         .from("posts")
-        .insert({
-          user_id: user.id,
-          caption: caption.trim() || null,
-          media_url: mediaUrl,
-          media_type: mediaType || "text",
-        });
+        .insert(postData);
 
       if (postError) throw postError;
 

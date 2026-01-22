@@ -24,6 +24,7 @@ const VideoCall = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const callType = (searchParams.get("type") || "video") as "video" | "audio";
+  const isIncoming = searchParams.get("incoming") === "true";
   
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,6 +42,7 @@ const VideoCall = () => {
     remoteStream,
     callDuration,
     startCall,
+    answerIncoming,
     endCall,
     toggleMute,
     toggleVideo,
@@ -48,6 +50,7 @@ const VideoCall = () => {
   } = useWebRTC({
     contactId: contactId || "",
     callType,
+    isIncoming,
     onCallEnded: () => {
       toast.success("Appel terminé");
       setTimeout(() => navigate(-1), 500);
@@ -76,12 +79,16 @@ const VideoCall = () => {
     fetchContact();
   }, [contactId]);
 
-  // Start call when component mounts
+  // Start or answer call when component mounts
   useEffect(() => {
     if (!loading && contact && callStatus === "idle") {
-      startCall();
+      if (isIncoming) {
+        answerIncoming();
+      } else {
+        startCall();
+      }
     }
-  }, [loading, contact, callStatus, startCall]);
+  }, [loading, contact, callStatus, startCall, answerIncoming, isIncoming]);
 
   // Attach local stream to video element
   useEffect(() => {
