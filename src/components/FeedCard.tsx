@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
@@ -13,6 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 interface FeedCardProps {
   id: string;
   userId: string;
@@ -46,6 +52,7 @@ export const FeedCard = ({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentsCount, setCommentsCount] = useState(initialComments);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const isVideo = mediaType === "video";
 
   // Fetch real-time comments count
@@ -107,23 +114,47 @@ export const FeedCard = ({
     ? caption.slice(0, 100) + "..." 
     : caption;
 
-  const handleShare = async () => {
+  const handleShare = async (platform?: string) => {
     const shareUrl = `${window.location.origin}/post/${id}`;
+    const shareText = caption.slice(0, 100) || `Post de ${user.name}`;
     
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Post de ${user.name}`,
-          text: caption.slice(0, 100),
-          url: shareUrl,
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          copyToClipboard(shareUrl);
+    if (!platform) {
+      // Try native share first
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Post de ${user.name}`,
+            text: shareText,
+            url: shareUrl,
+          });
+          return;
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            copyToClipboard(shareUrl);
+          }
+          return;
         }
       }
-    } else {
       copyToClipboard(shareUrl);
+      return;
+    }
+
+    switch (platform) {
+      case "copy":
+        copyToClipboard(shareUrl);
+        break;
+      case "whatsapp":
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`, "_blank");
+        break;
+      case "telegram":
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank");
+        break;
+      case "facebook":
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank");
+        break;
+      case "twitter":
+        window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank");
+        break;
     }
   };
 
@@ -231,7 +262,7 @@ export const FeedCard = ({
 
               {/* Share */}
               <button 
-                onClick={handleShare}
+                onClick={() => setIsShareOpen(true)}
                 className="flex flex-col items-center gap-1 transition-transform active:scale-90"
               >
                 <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
@@ -335,7 +366,7 @@ export const FeedCard = ({
                 onClick={() => setCommentsOpen(true)} 
                 variant="inline"
               />
-              <button onClick={handleShare}>
+              <button onClick={() => setIsShareOpen(true)}>
                 <Share2 className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
               </button>
               <DropdownMenu>
@@ -383,6 +414,47 @@ export const FeedCard = ({
         isOpen={commentsOpen}
         onOpenChange={setCommentsOpen}
       />
+
+      {/* Share Sheet */}
+      <Sheet open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader>
+            <SheetTitle className="text-center">Partager</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-4 gap-4 py-6">
+            <button onClick={() => handleShare("copy")} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                <Link2 className="w-6 h-6" />
+              </div>
+              <span className="text-xs">Copier</span>
+            </button>
+            <button onClick={() => handleShare("whatsapp")} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center">
+                <span className="text-white text-xl font-bold">W</span>
+              </div>
+              <span className="text-xs">WhatsApp</span>
+            </button>
+            <button onClick={() => handleShare("telegram")} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center">
+                <span className="text-white text-xl font-bold">T</span>
+              </div>
+              <span className="text-xs">Telegram</span>
+            </button>
+            <button onClick={() => handleShare("facebook")} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center">
+                <span className="text-white text-xl font-bold">f</span>
+              </div>
+              <span className="text-xs">Facebook</span>
+            </button>
+            <button onClick={() => handleShare("twitter")} className="flex flex-col items-center gap-2">
+              <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center">
+                <span className="text-white text-xl font-bold">X</span>
+              </div>
+              <span className="text-xs">Twitter</span>
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

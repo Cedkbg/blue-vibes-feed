@@ -355,8 +355,8 @@ const VideoItem = ({
           </div>
         )}
 
-        {/* Right side actions - positioned better */}
-        <div className="absolute right-3 bottom-28 flex flex-col items-center gap-5 z-10">
+        {/* Right side actions - compact spacing */}
+        <div className="absolute right-3 bottom-24 flex flex-col items-center gap-3 z-10">
           {/* Profile avatar with follow button */}
           <div className="relative">
             <button onClick={() => onProfileClick(video.user_id)}>

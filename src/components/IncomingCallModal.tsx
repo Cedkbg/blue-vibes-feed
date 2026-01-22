@@ -1,8 +1,9 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, PhoneOff, Video } from "lucide-react";
 import { motion } from "framer-motion";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface IncomingCallModalProps {
   isOpen: boolean;
@@ -23,7 +24,10 @@ export const IncomingCallModal = ({
 }: IncomingCallModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button]:hidden">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button]:hidden" aria-describedby={undefined}>
+        <VisuallyHidden>
+          <DialogTitle>Appel entrant de {callerName}</DialogTitle>
+        </VisuallyHidden>
         <div className="bg-gradient-to-br from-primary via-primary to-accent p-8 text-center">
           {/* Pulsing rings animation */}
           <div className="relative flex items-center justify-center mb-6">
