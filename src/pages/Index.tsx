@@ -19,9 +19,6 @@ interface Post {
   likes_count: number;
   comments_count: number;
   created_at: string;
-  channel_id: string | null;
-  group_id: string | null;
-  community_id: string | null;
 }
 
 interface Profile {
@@ -33,15 +30,8 @@ interface Profile {
   location: string | null;
 }
 
-interface SourceInfo {
-  type: "channel" | "group" | "community";
-  id: string;
-  name: string;
-}
-
 interface PostWithProfile extends Post {
   profile?: Profile;
-  source?: SourceInfo | null;
 }
 
 const Index = () => {
@@ -56,10 +46,14 @@ const Index = () => {
 
   const fetchPosts = async () => {
     // Fetch posts - only images, not videos (videos go to video page)
+    // Exclude posts that belong to channels, groups, or communities
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("*")
       .neq("media_type", "video")
+      .is("channel_id", null)
+      .is("group_id", null)
+      .is("community_id", null)
       .order("created_at", { ascending: false });
 
     if (postsError || !postsData) {
@@ -70,62 +64,22 @@ const Index = () => {
     // Get unique user IDs
     const userIds = [...new Set(postsData.map((p) => p.user_id))];
 
-    // Get unique channel, group, and community IDs
-    const channelIds = [...new Set(postsData.filter(p => p.channel_id).map(p => p.channel_id as string))];
-    const groupIds = [...new Set(postsData.filter(p => p.group_id).map(p => p.group_id as string))];
-    const communityIds = [...new Set(postsData.filter(p => p.community_id).map(p => p.community_id as string))];
-
     // Fetch profiles
     const { data: profilesData } = await supabase
       .from("profiles")
       .select("id, display_name, username, avatar_url, birthdate, profession, location")
       .in("id", userIds);
 
-    // Fetch channels, groups, and communities names
-    const [channelsRes, groupsRes, communitiesRes] = await Promise.all([
-      channelIds.length > 0 
-        ? supabase.from("channels").select("id, name").in("id", channelIds)
-        : Promise.resolve({ data: [] }),
-      groupIds.length > 0
-        ? supabase.from("groups").select("id, name").in("id", groupIds)
-        : Promise.resolve({ data: [] }),
-      communityIds.length > 0
-        ? supabase.from("communities").select("id, name").in("id", communityIds)
-        : Promise.resolve({ data: [] }),
-    ]);
-
     const profilesMap = new Map<string, Profile>();
     profilesData?.forEach((p) => {
       profilesMap.set(p.id, p);
     });
 
-    const channelsMap = new Map<string, string>();
-    channelsRes.data?.forEach((c) => channelsMap.set(c.id, c.name));
-
-    const groupsMap = new Map<string, string>();
-    groupsRes.data?.forEach((g) => groupsMap.set(g.id, g.name));
-
-    const communitiesMap = new Map<string, string>();
-    communitiesRes.data?.forEach((c) => communitiesMap.set(c.id, c.name));
-
-    // Combine posts with profiles and source info
-    const postsWithProfiles: PostWithProfile[] = postsData.map((post) => {
-      let source: SourceInfo | null = null;
-      
-      if (post.channel_id && channelsMap.has(post.channel_id)) {
-        source = { type: "channel", id: post.channel_id, name: channelsMap.get(post.channel_id)! };
-      } else if (post.group_id && groupsMap.has(post.group_id)) {
-        source = { type: "group", id: post.group_id, name: groupsMap.get(post.group_id)! };
-      } else if (post.community_id && communitiesMap.has(post.community_id)) {
-        source = { type: "community", id: post.community_id, name: communitiesMap.get(post.community_id)! };
-      }
-
-      return {
-        ...post,
-        profile: profilesMap.get(post.user_id),
-        source,
-      };
-    });
+    // Combine posts with profiles
+    const postsWithProfiles: PostWithProfile[] = postsData.map((post) => ({
+      ...post,
+      profile: profilesMap.get(post.user_id),
+    }));
 
     setPosts(postsWithProfiles);
     setIsLoading(false);
@@ -204,7 +158,6 @@ const Index = () => {
               caption={post.caption || ""}
               likes={post.likes_count}
               comments={post.comments_count}
-              source={post.source}
             />
           ))
         )}

@@ -11,11 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useGroupChat, GroupMessage } from "@/hooks/useGroupChat";
 import { useGroupMembership } from "@/hooks/useGroupMembership";
+import { useEntityPosts } from "@/hooks/useEntityPosts";
+import { EntityPostsList } from "@/components/EntityPostsList";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { 
   Users, MessageCircle, Send, ArrowLeft, Crown, 
-  LogOut, UserPlus, BadgeCheck, Globe, Paperclip, X, FileText, Trash2, Reply, CornerUpLeft, Plus
+  LogOut, UserPlus, BadgeCheck, Globe, Paperclip, X, FileText, Trash2, Reply, CornerUpLeft, Plus, ImageIcon
 } from "lucide-react";
 import { CreateContentModal } from "@/components/CreateContentModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +72,7 @@ const CommunityDetails = () => {
   const { isMemberOfCommunity, joinCommunity, leaveCommunity } = useGroupMembership();
   const { messages, loading: messagesLoading, sendMessage, deleteMessage } = useGroupChat({ communityId });
   const { permission, requestPermission, isSupported } = usePushNotifications();
+  const { posts, loading: postsLoading, refetch: refetchPosts } = useEntityPosts({ entityType: "community", entityId: communityId });
   
   const [community, setCommunity] = useState<CommunityInfo | null>(null);
   const [members, setMembers] = useState<MemberInfo[]>([]);
@@ -481,17 +484,29 @@ const CommunityDetails = () => {
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="chat" className="px-4">
+        <Tabs defaultValue="posts" className="px-4">
           <TabsList className="w-full mb-4">
+            <TabsTrigger value="posts" className="flex-1 gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Posts
+            </TabsTrigger>
             <TabsTrigger value="chat" className="flex-1 gap-2">
               <MessageCircle className="w-4 h-4" />
               Chat
             </TabsTrigger>
             <TabsTrigger value="members" className="flex-1 gap-2">
               <Users className="w-4 h-4" />
-              Membres ({members.length})
+              ({members.length})
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="posts" className="mt-0">
+            <EntityPostsList 
+              posts={posts} 
+              loading={postsLoading}
+              emptyMessage="Aucune publication dans cette communauté"
+            />
+          </TabsContent>
 
           <TabsContent value="chat" className="mt-0">
             {isMember ? (
@@ -650,6 +665,7 @@ const CommunityDetails = () => {
           type="community"
           targetId={community.id}
           targetName={community.name}
+          onContentCreated={refetchPosts}
         />
       )}
     </div>
