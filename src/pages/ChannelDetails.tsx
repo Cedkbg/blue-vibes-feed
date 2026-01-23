@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, BadgeCheck, Share2, Bell, BellOff, Plus } from "lucide-react";
+import { ArrowLeft, Users, BadgeCheck, Share2, Bell, BellOff, Plus, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChannels } from "@/hooks/useChannels";
+import { useEntityPosts } from "@/hooks/useEntityPosts";
+import { EntityPostsList } from "@/components/EntityPostsList";
 import { toast } from "sonner";
 import { CreateContentModal } from "@/components/CreateContentModal";
 
@@ -41,6 +44,11 @@ const ChannelDetails = () => {
   const [owner, setOwner] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateContent, setShowCreateContent] = useState(false);
+
+  const { posts, loading: postsLoading, refetch: refetchPosts } = useEntityPosts({ 
+    entityType: "channel", 
+    entityId: channelId 
+  });
 
   const isSubscribed = channelId ? subscribedChannelIds.includes(channelId) : false;
   const isOwner = user?.id === channel?.user_id;
@@ -210,50 +218,63 @@ const ChannelDetails = () => {
         </div>
 
         {channel.description && (
-          <p className="text-muted-foreground mb-6">{channel.description}</p>
+          <p className="text-muted-foreground mb-4">{channel.description}</p>
         )}
 
-        {/* Owner info */}
-        {owner && (
-          <Card className="mb-6">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground mb-2">Créée par</p>
-              <button
-                onClick={() => navigate(`/profile/${owner.id}`)}
-                className="flex items-center gap-3 hover:bg-accent/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
-              >
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={owner.avatar_url || ""} />
-                  <AvatarFallback>
-                    {owner.display_name?.[0] || owner.username?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-medium">
-                  {owner.display_name || owner.username || "Utilisateur"}
-                </span>
-              </button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Tabs for Posts and Info */}
+        <Tabs defaultValue="posts" className="mt-6">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="posts" className="flex-1 gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Publications
+            </TabsTrigger>
+            <TabsTrigger value="about" className="flex-1 gap-2">
+              <Users className="w-4 h-4" />
+              À propos
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Content section */}
-        <div className="text-center py-12">
-          {isOwner ? (
-            <div className="space-y-4">
-              <p className="text-muted-foreground">
-                Commencez à publier du contenu sur votre chaîne
-              </p>
-              <Button onClick={() => setShowCreateContent(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Créer un post
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              Aucun contenu pour le moment
-            </p>
-          )}
-        </div>
+          <TabsContent value="posts" className="mt-0">
+            {isOwner && (
+              <div className="mb-4">
+                <Button onClick={() => setShowCreateContent(true)} className="w-full gap-2">
+                  <Plus className="w-4 h-4" />
+                  Créer un post
+                </Button>
+              </div>
+            )}
+            <EntityPostsList 
+              posts={posts} 
+              loading={postsLoading}
+              emptyMessage="Aucune publication sur cette chaîne"
+            />
+          </TabsContent>
+
+          <TabsContent value="about" className="mt-0">
+            {/* Owner info */}
+            {owner && (
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground mb-2">Créée par</p>
+                  <button
+                    onClick={() => navigate(`/profile/${owner.id}`)}
+                    className="flex items-center gap-3 hover:bg-accent/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={owner.avatar_url || ""} />
+                      <AvatarFallback>
+                        {owner.display_name?.[0] || owner.username?.[0] || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">
+                      {owner.display_name || owner.username || "Utilisateur"}
+                    </span>
+                  </button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create Content Modal */}
@@ -264,6 +285,7 @@ const ChannelDetails = () => {
           type="channel"
           targetId={channel.id}
           targetName={channel.name}
+          onContentCreated={refetchPosts}
         />
       )}
     </div>
