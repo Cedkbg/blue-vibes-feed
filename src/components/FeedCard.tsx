@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2 } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
@@ -19,6 +19,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+
+interface SourceInfo {
+  type: "channel" | "group" | "community";
+  id: string;
+  name: string;
+}
+
 interface FeedCardProps {
   id: string;
   userId: string;
@@ -35,6 +43,7 @@ interface FeedCardProps {
   caption: string;
   likes: number;
   comments: number;
+  source?: SourceInfo | null;
 }
 
 export const FeedCard = ({ 
@@ -46,6 +55,7 @@ export const FeedCard = ({
   caption, 
   likes: initialLikes, 
   comments: initialComments,
+  source,
 }: FeedCardProps) => {
   const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
@@ -54,6 +64,32 @@ export const FeedCard = ({
   const [commentsCount, setCommentsCount] = useState(initialComments);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const isVideo = mediaType === "video";
+
+  const handleSourceClick = () => {
+    if (!source) return;
+    switch (source.type) {
+      case "channel":
+        navigate(`/channel/${source.id}`);
+        break;
+      case "group":
+        navigate(`/group/${source.id}`);
+        break;
+      case "community":
+        navigate(`/community/${source.id}`);
+        break;
+    }
+  };
+
+  const getSourceIcon = () => {
+    if (!source) return null;
+    switch (source.type) {
+      case "channel":
+        return <Hash className="w-3 h-3" />;
+      case "group":
+      case "community":
+        return <Users className="w-3 h-3" />;
+    }
+  };
 
   // Fetch real-time comments count
   useEffect(() => {
@@ -197,6 +233,15 @@ export const FeedCard = ({
             
             {/* User Info Overlay */}
             <div className="absolute bottom-0 left-0 right-16 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
+              {source && (
+                <button 
+                  onClick={handleSourceClick}
+                  className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full mb-2 hover:bg-white/30 transition-colors"
+                >
+                  {getSourceIcon()}
+                  <span>{source.name}</span>
+                </button>
+              )}
               <button onClick={handleProfileClick} className="flex items-baseline gap-2 text-left">
                 <h3 className="text-white font-bold text-xl hover:underline">
                   {user.name}{user.age ? `, ${user.age}` : ""}
@@ -307,7 +352,16 @@ export const FeedCard = ({
                 </Avatar>
               </button>
               <div className="flex-1">
-                <button onClick={handleProfileClick} className="text-left">
+                {source && (
+                  <button 
+                    onClick={handleSourceClick}
+                    className="inline-flex items-center gap-1 text-primary text-xs mb-0.5 hover:underline"
+                  >
+                    {getSourceIcon()}
+                    <span>{source.name}</span>
+                  </button>
+                )}
+                <button onClick={handleProfileClick} className="text-left block">
                   <h3 className="font-bold hover:underline">
                     {user.name}{user.age ? `, ${user.age}` : ""}
                   </h3>
