@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { 
   Play, Heart, MessageCircle, Share2, Volume2, VolumeX, 
   Bookmark, Download, ChevronDown, ChevronUp,
-  Send, Link2, Plus, Repeat2, Check
+  Send, Link2, Plus, Repeat2, Check, Hash, Users
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
@@ -17,6 +17,7 @@ import { useFollows } from "@/hooks/useFollows";
 import { useReposts } from "@/hooks/useReposts";
 import { useAuth } from "@/hooks/useAuth";
 import { CommentsSection } from "@/components/CommentsSection";
+import { VideoWatermark } from "@/components/VideoWatermark";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -24,6 +25,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+
+interface SourceInfo {
+  type: "channel" | "group" | "community";
+  id: string;
+  name: string;
+}
 
 interface VideoPost {
   id: string;
@@ -33,12 +40,16 @@ interface VideoPost {
   likes_count: number;
   comments_count: number;
   created_at: string;
+  channel_id: string | null;
+  group_id: string | null;
+  community_id: string | null;
   profile?: {
     id: string;
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
   };
+  source?: SourceInfo | null;
 }
 
 const Video = () => {
@@ -55,7 +66,7 @@ const Video = () => {
   const fetchVideos = async () => {
     const { data: postsData, error } = await supabase
       .from("posts")
-      .select("id, user_id, media_url, caption, likes_count, comments_count, created_at")
+      .select("id, user_id, media_url, caption, likes_count, comments_count, created_at, channel_id, group_id, community_id")
       .eq("media_type", "video")
       .not("media_url", "is", null)
       .order("created_at", { ascending: false });
@@ -71,10 +82,47 @@ const Video = () => {
       const profilesMap = new Map();
       profilesData?.forEach((p) => profilesMap.set(p.id, p));
 
-      const videosWithProfiles = postsData.map((video) => ({
-        ...video,
-        profile: profilesMap.get(video.user_id),
-      }));
+      // Fetch source names
+      const channelIds = [...new Set(postsData.filter(p => p.channel_id).map(p => p.channel_id!))];
+      const groupIds = [...new Set(postsData.filter(p => p.group_id).map(p => p.group_id!))];
+      const communityIds = [...new Set(postsData.filter(p => p.community_id).map(p => p.community_id!))];
+
+      const channelNamesMap = new Map<string, string>();
+      const groupNamesMap = new Map<string, string>();
+      const communityNamesMap = new Map<string, string>();
+
+      const [channelsRes, groupsRes, communitiesRes] = await Promise.all([
+        channelIds.length > 0 
+          ? supabase.from("channels").select("id, name").in("id", channelIds)
+          : { data: [] },
+        groupIds.length > 0
+          ? supabase.from("groups").select("id, name").in("id", groupIds)
+          : { data: [] },
+        communityIds.length > 0
+          ? supabase.from("communities").select("id, name").in("id", communityIds)
+          : { data: [] },
+      ]);
+
+      channelsRes.data?.forEach(c => channelNamesMap.set(c.id, c.name));
+      groupsRes.data?.forEach(g => groupNamesMap.set(g.id, g.name));
+      communitiesRes.data?.forEach(c => communityNamesMap.set(c.id, c.name));
+
+      const videosWithProfiles = postsData.map((video) => {
+        let source: SourceInfo | null = null;
+        if (video.channel_id && channelNamesMap.has(video.channel_id)) {
+          source = { type: "channel", id: video.channel_id, name: channelNamesMap.get(video.channel_id)! };
+        } else if (video.group_id && groupNamesMap.has(video.group_id)) {
+          source = { type: "group", id: video.group_id, name: groupNamesMap.get(video.group_id)! };
+        } else if (video.community_id && communityNamesMap.has(video.community_id)) {
+          source = { type: "community", id: video.community_id, name: communityNamesMap.get(video.community_id)! };
+        }
+
+        return {
+          ...video,
+          profile: profilesMap.get(video.user_id),
+          source,
+        };
+      });
 
       setVideos(videosWithProfiles);
     }
@@ -217,6 +265,7 @@ const VideoItem = ({
   onProfileClick,
   formatCount,
 }: VideoItemProps) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isLiked, toggleLike } = useLikes(video.id, video.likes_count);
   const { isFavorited, toggleFavorite } = useFavorites(video.id);
@@ -229,7 +278,34 @@ const VideoItem = ({
   const [isRepostOpen, setIsRepostOpen] = useState(false);
   const [repostComment, setRepostComment] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showOutro, setShowOutro] = useState(false);
   const isOwnVideo = user?.id === video.user_id;
+
+  // Handle video ended event for outro
+  useEffect(() => {
+    const videoEl = videoRefs.current[index];
+    if (!videoEl) return;
+
+    const handleEnded = () => {
+      setShowOutro(true);
+      // Hide outro after 2 seconds and restart video
+      setTimeout(() => {
+        setShowOutro(false);
+        videoEl.currentTime = 0;
+        if (isPlaying) {
+          videoEl.play().catch(() => {});
+        }
+      }, 2000);
+    };
+
+    // Only show outro if video doesn't loop
+    videoEl.loop = false;
+    videoEl.addEventListener("ended", handleEnded);
+
+    return () => {
+      videoEl.removeEventListener("ended", handleEnded);
+    };
+  }, [index, isPlaying, videoRefs]);
 
   // Subscribe to comment count changes
   useEffect(() => {
@@ -255,6 +331,32 @@ const VideoItem = ({
       supabase.removeChannel(channel);
     };
   }, [video.id]);
+
+  const handleSourceClick = () => {
+    if (!video.source) return;
+    switch (video.source.type) {
+      case "channel":
+        navigate(`/channel/${video.source.id}`);
+        break;
+      case "group":
+        navigate(`/group/${video.source.id}`);
+        break;
+      case "community":
+        navigate(`/community/${video.source.id}`);
+        break;
+    }
+  };
+
+  const getSourceIcon = () => {
+    if (!video.source) return null;
+    switch (video.source.type) {
+      case "channel":
+        return <Hash className="w-3 h-3" />;
+      case "group":
+      case "community":
+        return <Users className="w-3 h-3" />;
+    }
+  };
 
   const handleLike = async () => {
     if (!user) {
@@ -337,11 +439,13 @@ const VideoItem = ({
           ref={(el) => (videoRefs.current[index] = el)}
           src={video.media_url}
           className="absolute inset-0 w-full h-full object-contain bg-black"
-          loop
           muted={isMuted}
           playsInline
           onClick={onTogglePlay}
         />
+
+        {/* CedLite Watermark */}
+        <VideoWatermark showOutro={showOutro} />
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
@@ -436,6 +540,17 @@ const VideoItem = ({
 
         {/* Bottom info - better spacing */}
         <div className="absolute left-4 right-16 bottom-20 z-10">
+          {/* Source badge */}
+          {video.source && (
+            <button 
+              onClick={handleSourceClick}
+              className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full mb-2 hover:bg-white/30 transition-colors"
+            >
+              {getSourceIcon()}
+              <span>{video.source.name}</span>
+            </button>
+          )}
+          
           <button
             onClick={() => onProfileClick(video.user_id)}
             className="flex items-center gap-2 mb-2"
