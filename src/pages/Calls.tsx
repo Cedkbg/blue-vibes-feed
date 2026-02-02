@@ -5,21 +5,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCallHistory, formatDuration, CallRecord } from "@/hooks/useCallHistory";
+import { useContactGroups } from "@/hooks/useContactGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { CreateContactGroupModal } from "@/components/CreateContactGroupModal";
 import { 
   Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, 
-  Clock, ArrowUpRight, ArrowDownLeft 
+  Clock, ArrowUpRight, ArrowDownLeft, Plus, Users, MoreVertical, Trash2
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Calls = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { callHistory, loading } = useCallHistory();
+  const { groups, loading: groupsLoading, deleteGroup } = useContactGroups();
   const [filter, setFilter] = useState<"all" | "missed">("all");
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
   const filteredCalls = filter === "missed"
     ? callHistory.filter((call) => call.status === "missed")
@@ -107,6 +117,58 @@ const Calls = () => {
     );
   };
 
+  const GroupItem = ({ group }: { group: any }) => {
+    return (
+      <div className="flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors rounded-xl">
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Users className="w-6 h-6 text-primary" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <span className="font-medium truncate block">{group.name}</span>
+          <span className="text-sm text-muted-foreground">
+            {group.members_count || 0} membre{(group.members_count || 0) > 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => navigate(`/group-call/${group.id}?type=audio`)}
+            className="rounded-full"
+          >
+            <Phone className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => navigate(`/group-call/${group.id}?type=video`)}
+            className="rounded-full"
+          >
+            <Video className="w-4 h-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="rounded-full">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => deleteGroup(group.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  };
+
   const SkeletonItem = () => (
     <div className="flex items-center gap-3 p-4">
       <Skeleton className="w-12 h-12 rounded-full" />
@@ -140,51 +202,105 @@ const Calls = () => {
                 Appels
               </h1>
               <p className="text-primary-foreground/80 text-sm">
-                Historique de vos appels
+                Historique et groupes d'appels
               </p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "missed")} className="mb-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">
-              Tous
+        <Tabs defaultValue="history" className="mb-4">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="history" className="flex-1">
+              Historique
             </TabsTrigger>
-            <TabsTrigger value="missed" className="flex-1">
-              Manqués
+            <TabsTrigger value="groups" className="flex-1">
+              Groupes
             </TabsTrigger>
           </TabsList>
-        </Tabs>
 
-        {/* Call List */}
-        <div className="space-y-2">
-          {loading ? (
-            <>
-              <SkeletonItem />
-              <SkeletonItem />
-              <SkeletonItem />
-            </>
-          ) : filteredCalls.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <Phone className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-medium text-foreground mb-1">
-                {filter === "missed" ? "Aucun appel manqué" : "Aucun appel"}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Votre historique d'appels apparaîtra ici
-              </p>
+          {/* History Tab */}
+          <TabsContent value="history" className="mt-4">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "missed")}>
+              <TabsList className="w-full mb-4">
+                <TabsTrigger value="all" className="flex-1">
+                  Tous
+                </TabsTrigger>
+                <TabsTrigger value="missed" className="flex-1">
+                  Manqués
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="space-y-2">
+              {loading ? (
+                <>
+                  <SkeletonItem />
+                  <SkeletonItem />
+                  <SkeletonItem />
+                </>
+              ) : filteredCalls.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-medium text-foreground mb-1">
+                    {filter === "missed" ? "Aucun appel manqué" : "Aucun appel"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Votre historique d'appels apparaîtra ici
+                  </p>
+                </div>
+              ) : (
+                filteredCalls.map((call) => (
+                  <CallItem key={call.id} call={call} />
+                ))
+              )}
             </div>
-          ) : (
-            filteredCalls.map((call) => (
-              <CallItem key={call.id} call={call} />
-            ))
-          )}
-        </div>
+          </TabsContent>
+
+          {/* Groups Tab */}
+          <TabsContent value="groups" className="mt-4">
+            <Button 
+              onClick={() => setShowCreateGroup(true)}
+              className="w-full mb-4 rounded-xl gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Créer un groupe d'appel
+            </Button>
+
+            <div className="space-y-2">
+              {groupsLoading ? (
+                <>
+                  <SkeletonItem />
+                  <SkeletonItem />
+                </>
+              ) : groups.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Users className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-medium text-foreground mb-1">
+                    Aucun groupe
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Créez un groupe pour passer des appels de groupe
+                  </p>
+                </div>
+              ) : (
+                groups.map((group) => (
+                  <GroupItem key={group.id} group={group} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <CreateContactGroupModal
+        open={showCreateGroup}
+        onOpenChange={setShowCreateGroup}
+      />
 
       <BottomNav />
     </div>
