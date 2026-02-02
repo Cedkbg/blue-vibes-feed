@@ -79,16 +79,19 @@ const VideoCall = () => {
     fetchContact();
   }, [contactId]);
 
-  // Start or answer call when component mounts
+  // Start or answer call when component mounts - only trigger once
+  const hasStartedRef = useRef(false);
+  
   useEffect(() => {
-    if (!loading && contact && callStatus === "idle") {
+    if (!loading && contact && callStatus === "idle" && !hasStartedRef.current) {
+      hasStartedRef.current = true;
       if (isIncoming) {
         answerIncoming();
       } else {
         startCall();
       }
     }
-  }, [loading, contact, callStatus, startCall, answerIncoming, isIncoming]);
+  }, [loading, contact, callStatus, isIncoming]);
 
   // Attach local stream to video element
   useEffect(() => {

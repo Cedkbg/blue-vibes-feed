@@ -126,7 +126,7 @@ export const useWebRTC = ({ contactId, callType, isIncoming, onCallEnded, onCall
 
   // Start a call (as caller)
   const startCall = useCallback(async () => {
-    if (!user) return;
+    if (!user || callStatus !== "idle") return;
 
     try {
       setCallStatus("calling");
@@ -147,14 +147,20 @@ export const useWebRTC = ({ contactId, callType, isIncoming, onCallEnded, onCall
         currentCallRecordId = callRecord.id;
       }
       
-      // Initialize local stream
-      await initLocalStream();
+      // Initialize local stream first
+      const stream = await initLocalStream();
+      if (!stream) {
+        throw new Error("Failed to get media stream");
+      }
       
-      // Create peer connection
+      // Create peer connection after stream is ready
       const pc = createPeerConnection();
 
-      // Create offer
-      const offer = await pc.createOffer();
+      // Create offer with proper options
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: callType === "video",
+      });
       await pc.setLocalDescription(offer);
 
       // Send offer signal
@@ -173,7 +179,7 @@ export const useWebRTC = ({ contactId, callType, isIncoming, onCallEnded, onCall
       setCallStatus("ended");
       toast.error("Erreur lors de l'appel");
     }
-  }, [user, contactId, callType, initLocalStream, createPeerConnection]);
+  }, [user, contactId, callType, callStatus, initLocalStream, createPeerConnection]);
 
   // Answer a call (as callee) with provided offer
   const answerCall = useCallback(async (offer: RTCSessionDescriptionInit) => {
