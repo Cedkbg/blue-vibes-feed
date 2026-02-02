@@ -273,6 +273,62 @@ export type Database = {
           },
         ]
       }
+      contact_group_members: {
+        Row: {
+          added_at: string
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_groups: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          creator_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          creator_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          creator_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -346,6 +402,76 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      group_call_participants: {
+        Row: {
+          call_id: string
+          id: string
+          joined_at: string
+          left_at: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "group_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_calls: {
+        Row: {
+          call_type: string
+          contact_group_id: string
+          ended_at: string | null
+          id: string
+          initiator_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          call_type?: string
+          contact_group_id: string
+          ended_at?: string | null
+          id?: string
+          initiator_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          call_type?: string
+          contact_group_id?: string
+          ended_at?: string | null
+          id?: string
+          initiator_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_calls_contact_group_id_fkey"
+            columns: ["contact_group_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_members: {
         Row: {
