@@ -14,7 +14,8 @@ import { useViewers } from "@/hooks/useViewers";
 import { LiveChatMessage } from "@/components/LiveChatMessage";
 import { LiveChatReactions } from "@/components/LiveChatReactions";
 import { ViewersList } from "@/components/ViewersList";
-import { Radio, Eye, Send, X, Users, Smile } from "lucide-react";
+import { Radio, Eye, Send, X, Users, Smile, VideoOff, MicOff, Mic, Video, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👏", "💯", "❤️", "🎉"];
 
@@ -27,6 +28,13 @@ const LiveStream = () => {
   const [showEmojis, setShowEmojis] = useState(false);
   const [lastReaction, setLastReaction] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Camera state
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
 
   const currentStreamId = streamId || myStream?.id;
   const { messages, sendMessage, sendReaction } = useLiveChat(currentStreamId);
@@ -36,6 +44,52 @@ const LiveStream = () => {
     ? liveStreams.find(s => s.id === streamId) || myStream 
     : myStream;
   const isMyStream = stream?.user_id === user?.id;
+
+  // Initialize camera for host
+  useEffect(() => {
+    const initCamera = async () => {
+      if (!isMyStream) return;
+      
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true,
+        });
+        
+        setLocalStream(mediaStream);
+        setCameraError(null);
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = mediaStream;
+        }
+      } catch (error: any) {
+        console.error("Camera error:", error);
+        if (error.name === "NotAllowedError") {
+          setCameraError("Accès à la caméra refusé. Veuillez autoriser l'accès dans les paramètres du navigateur.");
+        } else if (error.name === "NotFoundError") {
+          setCameraError("Aucune caméra détectée.");
+        } else {
+          setCameraError("Impossible d'accéder à la caméra.");
+        }
+        toast.error("Impossible d'accéder à la caméra");
+      }
+    };
+
+    initCamera();
+
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isMyStream]);
+
+  // Attach stream to video element when it changes
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -72,6 +126,9 @@ const LiveStream = () => {
   };
 
   const handleEndStream = async () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
     await endStream();
     navigate("/friends");
   };
@@ -81,6 +138,52 @@ const LiveStream = () => {
       await leaveStream(streamId);
     }
     navigate("/friends");
+  };
+
+  const toggleMute = () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  const switchCamera = async () => {
+    if (!localStream) return;
+
+    const currentTrack = localStream.getVideoTracks()[0];
+    if (!currentTrack) return;
+
+    const currentSettings = currentTrack.getSettings();
+    const newFacingMode = currentSettings.facingMode === "user" ? "environment" : "user";
+
+    currentTrack.stop();
+
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newFacingMode },
+        audio: true,
+      });
+
+      setLocalStream(newStream);
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = newStream;
+      }
+    } catch (error) {
+      console.error("Error switching camera:", error);
+      toast.error("Erreur lors du changement de caméra");
+    }
   };
 
   if (!stream) {
@@ -102,7 +205,24 @@ const LiveStream = () => {
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {/* Video area */}
-      <div className="relative flex-1 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+      <div className="relative flex-1 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+        {/* Host's camera video */}
+        {isMyStream && localStream && !isVideoOff ? (
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ transform: "scaleX(-1)" }}
+          />
+        ) : isMyStream && cameraError ? (
+          <div className="text-center text-white p-4">
+            <VideoOff className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p className="text-white/70 text-sm max-w-xs">{cameraError}</p>
+          </div>
+        ) : null}
+
         {/* Close button */}
         <Button
           size="icon"
@@ -139,28 +259,58 @@ const LiveStream = () => {
           </div>
         </div>
 
-        {/* Center content */}
-        <div className="text-center text-white">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <Radio className="w-16 h-16 mx-auto mb-4" />
-          </motion.div>
-          <h2 className="text-xl font-bold mb-2">{stream.title}</h2>
-          {stream.description && (
-            <p className="text-white/70">{stream.description}</p>
-          )}
-          {isMyStream && (
+        {/* Host controls */}
+        {isMyStream && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-10">
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`h-12 w-12 rounded-full ${isMuted ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"}`}
+              onClick={toggleMute}
+            >
+              {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`h-12 w-12 rounded-full ${isVideoOff ? "bg-red-500 hover:bg-red-600" : "bg-white/20 hover:bg-white/30"}`}
+              onClick={toggleVideo}
+            >
+              {isVideoOff ? <VideoOff className="w-5 h-5 text-white" /> : <Video className="w-5 h-5 text-white" />}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-12 w-12 rounded-full bg-white/20 hover:bg-white/30"
+              onClick={switchCamera}
+            >
+              <RotateCcw className="w-5 h-5 text-white" />
+            </Button>
             <Button
               onClick={handleEndStream}
               variant="destructive"
-              className="mt-4"
+              className="rounded-full px-6"
             >
-              Terminer le live
+              Terminer
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Center content for viewers or when video is off */}
+        {(!isMyStream || isVideoOff || !localStream) && !cameraError && (
+          <div className="text-center text-white">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Radio className="w-16 h-16 mx-auto mb-4" />
+            </motion.div>
+            <h2 className="text-xl font-bold mb-2">{stream.title}</h2>
+            {stream.description && (
+              <p className="text-white/70">{stream.description}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Chat section */}
