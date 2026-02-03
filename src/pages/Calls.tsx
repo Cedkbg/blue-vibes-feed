@@ -11,9 +11,10 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateContactGroupModal } from "@/components/CreateContactGroupModal";
+import { EditContactGroupModal } from "@/components/EditContactGroupModal";
 import { 
   Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, 
-  Clock, ArrowUpRight, ArrowDownLeft, Plus, Users, MoreVertical, Trash2
+  Clock, ArrowUpRight, ArrowDownLeft, Plus, Users, MoreVertical, Trash2, Pencil
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -30,6 +31,7 @@ const Calls = () => {
   const { groups, loading: groupsLoading, deleteGroup } = useContactGroups();
   const [filter, setFilter] = useState<"all" | "missed">("all");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<{ id: string; name: string } | null>(null);
 
   const filteredCalls = filter === "missed"
     ? callHistory.filter((call) => call.status === "missed")
@@ -155,6 +157,12 @@ const Calls = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setEditingGroup({ id: group.id, name: group.name })}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => deleteGroup(group.id)}
                 className="text-destructive"
@@ -301,6 +309,16 @@ const Calls = () => {
         open={showCreateGroup}
         onOpenChange={setShowCreateGroup}
       />
+
+      {editingGroup && (
+        <EditContactGroupModal
+          open={!!editingGroup}
+          onOpenChange={(open) => !open && setEditingGroup(null)}
+          groupId={editingGroup.id}
+          groupName={editingGroup.name}
+          onGroupUpdated={() => setEditingGroup(null)}
+        />
+      )}
 
       <BottomNav />
     </div>
