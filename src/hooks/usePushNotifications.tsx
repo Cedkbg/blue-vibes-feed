@@ -140,8 +140,66 @@ export const usePushNotifications = () => {
       )
       .subscribe();
 
+    // Subscribe to group calls
+    const groupCallChannel = supabase
+      .channel("push-group-calls")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "group_calls",
+        },
+        async (payload) => {
+          const call = payload.new as {
+            id: string;
+            contact_group_id: string;
+            initiator_id: string;
+            call_type: string;
+          };
+
+          // Don't notify for own calls
+          if (call.initiator_id === user.id) return;
+
+          // Check if user is member of this contact group
+          const { data: membership } = await supabase
+            .from("contact_group_members")
+            .select("id")
+            .eq("group_id", call.contact_group_id)
+            .eq("user_id", user.id)
+            .single();
+
+          if (!membership) return;
+
+          // Get initiator profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name, username")
+            .eq("id", call.initiator_id)
+            .single();
+
+          // Get group name
+          const { data: group } = await supabase
+            .from("contact_groups")
+            .select("name")
+            .eq("id", call.contact_group_id)
+            .single();
+
+          const initiatorName = profile?.display_name || profile?.username || "Quelqu'un";
+          const groupName = group?.name || "le groupe";
+          const callTypeText = call.call_type === "video" ? "vidéo" : "audio";
+
+          showNotification(`📞 Appel de groupe`, {
+            body: `${initiatorName} a lancé un appel ${callTypeText} dans ${groupName}`,
+            tag: `group-call-${call.id}`,
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(groupChannel);
+      supabase.removeChannel(groupCallChannel);
     };
   }, [user, permission, showNotification]);
 
