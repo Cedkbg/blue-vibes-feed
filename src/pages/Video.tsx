@@ -279,7 +279,32 @@ const VideoItem = ({
   const [repostComment, setRepostComment] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [showOutro, setShowOutro] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
+  const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const isOwnVideo = user?.id === video.user_id;
+
+  // Show intro animation when video starts playing
+  useEffect(() => {
+    const videoEl = videoRefs.current[index];
+    if (!videoEl) return;
+
+    const handlePlay = () => {
+      if (!hasPlayedIntro) {
+        setShowIntro(true);
+        setHasPlayedIntro(true);
+        // Hide intro after animation completes
+        setTimeout(() => {
+          setShowIntro(false);
+        }, 1500);
+      }
+    };
+
+    videoEl.addEventListener("play", handlePlay);
+
+    return () => {
+      videoEl.removeEventListener("play", handlePlay);
+    };
+  }, [index, hasPlayedIntro, videoRefs]);
 
   // Handle video ended event for outro
   useEffect(() => {
@@ -445,7 +470,7 @@ const VideoItem = ({
         />
 
         {/* CedLite Watermark */}
-        <VideoWatermark showOutro={showOutro} />
+        <VideoWatermark showOutro={showOutro} showIntro={showIntro} />
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
