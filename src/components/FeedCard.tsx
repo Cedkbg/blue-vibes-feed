@@ -212,12 +212,12 @@ export const FeedCard = ({
     <>
       <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4">
         {hasImage ? (
-          /* Media Container */
-          <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+          /* Media Container - Adaptive sizing */
+          <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '70vh' }}>
             {isVideo ? (
               <video
                 src={image}
-                className="w-full h-full object-cover"
+                className="w-full h-auto max-h-[70vh] object-contain"
                 controls
                 playsInline
                 muted
@@ -227,7 +227,7 @@ export const FeedCard = ({
               <img 
                 src={image} 
                 alt={caption}
-                className="w-full h-full object-cover"
+                className="w-full h-auto max-h-[70vh] object-contain"
               />
             )}
             
