@@ -292,10 +292,10 @@ const VideoItem = ({
       if (!hasPlayedIntro) {
         setShowIntro(true);
         setHasPlayedIntro(true);
-        // Hide intro after animation completes
+        // Hide intro after animation completes (2.5s for new animation)
         setTimeout(() => {
           setShowIntro(false);
-        }, 1500);
+        }, 2500);
       }
     };
 
@@ -470,7 +470,11 @@ const VideoItem = ({
         />
 
         {/* CedLite Watermark */}
-        <VideoWatermark showOutro={showOutro} showIntro={showIntro} />
+        <VideoWatermark 
+          showOutro={showOutro} 
+          showIntro={showIntro} 
+          creatorName={video.profile?.display_name || video.profile?.username || ""}
+        />
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
