@@ -283,7 +283,7 @@ const VideoItem = ({
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const isOwnVideo = user?.id === video.user_id;
 
-  // Show intro animation when video starts playing
+  // Show intro animation when video starts playing - stays visible during playback
   useEffect(() => {
     const videoEl = videoRefs.current[index];
     if (!videoEl) return;
@@ -292,17 +292,23 @@ const VideoItem = ({
       if (!hasPlayedIntro) {
         setShowIntro(true);
         setHasPlayedIntro(true);
-        // Hide intro after animation completes (2.5s for new animation)
-        setTimeout(() => {
-          setShowIntro(false);
-        }, 2500);
       }
     };
 
+    const handlePause = () => {
+      // Keep watermark visible even when paused
+    };
+
+    const handleEnded = () => {
+      setShowIntro(false);
+    };
+
     videoEl.addEventListener("play", handlePlay);
+    videoEl.addEventListener("pause", handlePause);
 
     return () => {
       videoEl.removeEventListener("play", handlePlay);
+      videoEl.removeEventListener("pause", handlePause);
     };
   }, [index, hasPlayedIntro, videoRefs]);
 

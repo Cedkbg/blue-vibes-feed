@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateStoryModal } from "@/components/CreateStoryModal";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { StoryWatermark } from "@/components/StoryWatermark";
 interface StoryViewerProps {
   stories: any[];
   initialIndex: number;
@@ -18,7 +19,13 @@ interface StoryViewerProps {
 
 const StoryViewer = ({ stories, initialIndex, onClose, onView }: StoryViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [showIntro, setShowIntro] = useState(true);
   const currentStory = stories[currentIndex];
+
+  // Reset intro on story change
+  useEffect(() => {
+    setShowIntro(true);
+  }, [currentIndex]);
 
   const handleNext = () => {
     if (currentIndex < stories.length - 1) {
@@ -37,8 +44,12 @@ const StoryViewer = ({ stories, initialIndex, onClose, onView }: StoryViewerProp
 
   if (!currentStory) return null;
 
+  const creatorName = currentStory.profile?.display_name || currentStory.profile?.username || "";
+
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center">
+      {/* CedLite Watermark */}
+      <StoryWatermark showIntro={showIntro} creatorName={creatorName} />
       {/* Progress bars */}
       <div className="absolute top-4 left-4 right-4 flex gap-1 z-10">
         {stories.map((_, index) => (
