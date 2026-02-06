@@ -6,13 +6,60 @@ interface VideoWatermarkProps {
   showOutro: boolean;
   showIntro?: boolean;
   creatorName?: string;
+  currentTime?: number;
+  duration?: number;
 }
 
-// Create a more distinctive CedLite outro sound (melodic chime)
-const outroSound = new Audio();
-// A more distinctive melodic sound - 3 ascending notes
-outroSound.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Onreyxs3U2t7g4+Tl5OLf2dHGubCkloV5cGlmZmlxfYyftb3Gy9Dc4ubn5+bk4NvTycC1qZqNg3lycGlqcHuLnrO9x9DY3uPl5uXj39rRyL+0qJmMgXdwam1xfImcrb7I0Njf5Ofn5+Xh3NbNxLmupJWJfnNsam1yfoycq7rE0Njf5Obn5+Xi3tfPxby0qJuNgndvbGxxe4mbqbfDztXd4+Xm5uTh3dfOxLmtp5mLf3Vua25ze4qarLfCzdbf5Obn5+Ti3tjQxr21qZyPg3hwbGxxe4ibqbfDztbf5Ofn5+Ti3tjQxr62qp2QhHlxbXBzeouZprO/y9Td4+Xm5uTh3NbNw7ito5aIfnVubG50eoiXo6+8yNHZ3+Pl5uXi3tjPxbuxppiKfnRtam1ye4mYpa+7xtDY3uLk5eXj393Uy7+zpJeKfnNsam1zeYeWo66Pxc7V3OHk5eXj393Uy7+0ppqLf3Vua29ze4iXpK+7xc7V2t/i5OTj39vSybyvpZiKfnVua25ze4iXpK+7xc7V2t/i5OTj39vSybyvpZiLf3Zva29zeoiXo629yM/W3OHk5OPh3NfPxbqupJaIfHNsam1zeYeVoa26xc7V2+Dj5OPh3djPxbuxpp2Qg3hwbWxueIaUn6u2ws3U2t/i4+Ph39vUzMS6sKSYjIF3cGxscnqIlZ+qtr/J0Njd4ePj4d/b1MzEu7GlmY2BeHBsbXJ6iJWfqrS+x9DW29/h4uHf29TLw7qwpJiMgHdwbGxye4mXoau1v8jQ1trf4eHg3trSysG4rqKVin52cGxscnuJl6KrtL7Hz9bZ3d/g393Z0ci/tqugk4h9dW9sbHJ7iZeitLzGz9bZ3d/f3tzY0Mi/tquglYp/dnBsbHJ7iZeitLzGz9XY3N7f3tzY0Mi/t6uhloqAd3BsbHN7iZehs7zFztXY3N7f3tzY0Me/t6uhloqAd3FtbHN8iZahs7vEzNPX29ze3tzY0Me+tqugloqAd3FtbHN8iZWhsrvDzNPX29ze3tvX0Ma+tqqfloqAd3Ftb3N8iZWhsbrCy9LW2tzd3drW0MW9tamelYl/d3Ftb3N8iJWgsLnBy9LW2tzd3drV0MS9tamelYl/d3FucHR8iJWfrrnAytHV2dvc3drV0MO8tKidlIh+dnFucHR9iZWfrri/ytHV2dvc3NrVz8K8s6edlIh+dnFucHR9iZWfrrjAytHV2dvc3NnUz8K7s6eclIh+d3FucHV9iZWfrbfAytHU2Nvb29nUz8G7sqabk4h9dnFucHV9iZSerbfAydDU2NrZ2djUz8G6sqaak4h9dnFucHV9iZSerbfAyNDU19nZ2NjTzsC6sqaak4h9d3Ftb3V9iZSerrfAyNDU19jY19fSzsC6sqWZkoh9d3FucHZ9iZSerbe/x9DT19jY19fSzcC5saSZkod8d3FucHZ+iZOdrbW/x8/T19jX19bSzb+5saSZkod8d3FucHZ+iZOdrbW/x8/T1tfW1tXRzL+4sKOYkYZ8d3Buc3Z+iZOcrLS+xs7S1tbV1dXQy764sKOXkYZ7d3BudHZ+iJObq7O9xs7R1dXU1NTQyr24r6KXkYZ7dnBudHZ+iJObq7O9xc3Q1NTU09POyr23r6KXkIZ7dnBudHd+iJOaq7K8xMzQ09PTztLOyby2rqGWkIV6dnBudHd+h5KZqrK7w8vP0tLR0dHNyLu1raGVj4R6dXBudHd+h5KZqbG6w8rO0dHQ0NDMx7q1raGVjoN5dXBtdXh+h5GYqLG5wsrN0NDPzs7Mxrq0rKCUjYN5dXFtdXh/hpCYp7C5wcnM0M/Ozc3Lxbm0rJ+TjIJ5dXFtdXl/hpCXprC4wMjLzs7NzMzKxLmzq5+TjIJ4dHFtdXl/hpCXprC3wMfKzc3LysvJxLiyq56Si4F4dHFtdnh/hY+Wpa+3v8bJzMvKycjIw7exqp2RioB4dHFueHl/hY+Vpa62vsbIy8rJyMfHwraxqZyRiYB4c3Fud3l/hI6Upa62vcXHycnIx8bGwbWwqZuQiH94c3Ftd3l/hI6TpKy1vMTGyMfGxcXFwLSwqJuPh394c3FteHp/hI2TpKy0u8PFx8bFxMTDv7SvqJqOhn53c3FteHp/g4ySpKu0u8LExsXExMPDvrOuqJmNhn12c3Ftd3p/g4ySo6uzu8HExMTDw8LCvrOuqJmNhX12c3Fud3p/g4uRo6qyu8DDw8PCwsHBvLOtp5mMhH11cnFueHp/goqQoqmxusDBwsLBwcDAu7KtppeMhH11cnBueHt/goqPoemxusC/wMC/v7+/u7GsppeLg3x0cXBueHt/gYmPn6iwub6+v7++vr2+urGrpZaKgnx0cXBueXt/gYiOnqevuL2+vr69vby9urCrpJWJgXt0cXBueXt/gIiOnqauuLy9vby8u7u8uK+qpJWJgHt0cXBueXt/gIeNnaWtt7u8vLu6urq6t6+po5SIf3pzcHBweXuAgIeNnaSstr25u7q5ubm5ta6oo5OHf3lzcHBweXyAgIaNnKOrtbu4ubi4uLi4ta2oo5OGfnlycHBweXyAgIWMnKOrsby3t7e2tre3tKyno5KGfXhxcHBweXyAf4WMm6KqsLq2trW1tbW1tKymo5KFfXhxcHFweXyAf4SLmqGpr7m1tbS0tLS0s6ulo5GEfXdwcHFweny";
-outroSound.volume = 0.4;
+// Create a more captivating CedLite outro sound - rich melodic chime with harmonics
+const createOutroSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const sampleRate = audioContext.sampleRate;
+    const duration = 1.5;
+    const numSamples = sampleRate * duration;
+    const buffer = audioContext.createBuffer(2, numSamples, sampleRate);
+    
+    const leftChannel = buffer.getChannelData(0);
+    const rightChannel = buffer.getChannelData(1);
+    
+    // Musical frequencies for a rich chord (C major with overtones)
+    const frequencies = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+    const delays = [0, 0.05, 0.1, 0.15, 0.2]; // Staggered entry for arpeggio effect
+    
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      let leftSample = 0;
+      let rightSample = 0;
+      
+      frequencies.forEach((freq, idx) => {
+        const delayedT = t - delays[idx];
+        if (delayedT >= 0) {
+          // Exponential decay with slight stereo pan
+          const envelope = Math.exp(-delayedT * (2.5 + idx * 0.3));
+          const vibrato = 1 + Math.sin(2 * Math.PI * 5 * delayedT) * 0.002;
+          const wave = Math.sin(2 * Math.PI * freq * vibrato * delayedT);
+          
+          // Add harmonics for richness
+          const harmonic = Math.sin(2 * Math.PI * freq * 2 * delayedT) * 0.3;
+          const sample = (wave + harmonic) * envelope * (0.25 - idx * 0.03);
+          
+          // Slight stereo spread
+          leftSample += sample * (1 - idx * 0.1);
+          rightSample += sample * (0.8 + idx * 0.05);
+        }
+      });
+      
+      // Add a subtle shimmer effect
+      const shimmer = Math.sin(2 * Math.PI * 2000 * t) * Math.exp(-t * 8) * 0.05;
+      leftChannel[i] = Math.max(-1, Math.min(1, leftSample + shimmer));
+      rightChannel[i] = Math.max(-1, Math.min(1, rightSample + shimmer));
+    }
+    
+    return { audioContext, buffer };
+  } catch (e) {
+    return null;
+  }
+};
 
 // Floating animation for TikTok-like effect
 const floatingAnimation = {
@@ -21,9 +68,16 @@ const floatingAnimation = {
   rotate: [0, 1, 0, -1, 0],
 };
 
-export const VideoWatermark = ({ showOutro, showIntro = false, creatorName = "" }: VideoWatermarkProps) => {
+export const VideoWatermark = ({ 
+  showOutro, 
+  showIntro = false, 
+  creatorName = "",
+  currentTime = 0,
+  duration = 0
+}: VideoWatermarkProps) => {
   const hasPlayedSound = useRef(false);
   const [introPhase, setIntroPhase] = useState<"left" | "right">("left");
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Switch from left to right after 5 seconds
   useEffect(() => {
@@ -36,20 +90,55 @@ export const VideoWatermark = ({ showOutro, showIntro = false, creatorName = "" 
     }
   }, [showIntro]);
 
-  // Play sound when outro appears
+  // Play rich sound when outro appears
   useEffect(() => {
     if (showOutro && !hasPlayedSound.current) {
       hasPlayedSound.current = true;
-      outroSound.currentTime = 0;
-      outroSound.play().catch(() => {});
+      
+      const audioData = createOutroSound();
+      if (audioData) {
+        const { audioContext, buffer } = audioData;
+        audioContextRef.current = audioContext;
+        
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.5;
+        gainNode.connect(audioContext.destination);
+        
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(gainNode);
+        source.start();
+      }
     }
     if (!showOutro) {
       hasPlayedSound.current = false;
     }
   }, [showOutro]);
 
+  // Cleanup audio context
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   return (
     <>
+      {/* Progress bar - thin line at bottom */}
+      <div className="absolute bottom-16 left-0 right-0 z-20 px-0">
+        <div className="h-[2px] bg-white/20 w-full">
+          <motion.div 
+            className="h-full bg-white"
+            style={{ width: `${progressPercent}%` }}
+            transition={{ duration: 0.1, ease: "linear" }}
+          />
+        </div>
+      </div>
+
       {/* Intro animation - Logo at bottom-left, then moves to right with floating effect */}
       <AnimatePresence>
         {showIntro && (
