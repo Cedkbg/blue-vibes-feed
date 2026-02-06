@@ -281,9 +281,11 @@ const VideoItem = ({
   const [showOutro, setShowOutro] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const isOwnVideo = user?.id === video.user_id;
 
-  // Show intro animation when video starts playing - stays visible during playback
+  // Reset video when leaving and returning + track time for progress bar
   useEffect(() => {
     const videoEl = videoRefs.current[index];
     if (!videoEl) return;
@@ -295,8 +297,15 @@ const VideoItem = ({
       }
     };
 
-    const handlePause = () => {
-      // Keep watermark visible even when paused
+    const handleTimeUpdate = () => {
+      setCurrentTime(videoEl.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(videoEl.duration);
+      // Reset to beginning when video loads
+      videoEl.currentTime = 0;
+      setCurrentTime(0);
     };
 
     const handleEnded = () => {
@@ -304,13 +313,23 @@ const VideoItem = ({
     };
 
     videoEl.addEventListener("play", handlePlay);
-    videoEl.addEventListener("pause", handlePause);
+    videoEl.addEventListener("timeupdate", handleTimeUpdate);
+    videoEl.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+    // Reset when becoming active video
+    if (isPlaying) {
+      videoEl.currentTime = 0;
+      setCurrentTime(0);
+      setHasPlayedIntro(false);
+      setShowIntro(false);
+    }
 
     return () => {
       videoEl.removeEventListener("play", handlePlay);
-      videoEl.removeEventListener("pause", handlePause);
+      videoEl.removeEventListener("timeupdate", handleTimeUpdate);
+      videoEl.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
-  }, [index, hasPlayedIntro, videoRefs]);
+  }, [index, hasPlayedIntro, videoRefs, isPlaying]);
 
   // Handle video ended event for outro
   useEffect(() => {
@@ -475,11 +494,13 @@ const VideoItem = ({
           onClick={onTogglePlay}
         />
 
-        {/* CedLite Watermark */}
+        {/* CedLite Watermark with progress */}
         <VideoWatermark 
           showOutro={showOutro} 
           showIntro={showIntro} 
           creatorName={video.profile?.display_name || video.profile?.username || ""}
+          currentTime={currentTime}
+          duration={duration}
         />
 
         {/* Gradient overlay */}
