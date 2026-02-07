@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck } from "lucide-react";
+import { FollowersModal } from "@/components/FollowersModal";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BottomNav } from "@/components/BottomNav";
@@ -42,6 +43,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [followersTab, setFollowersTab] = useState<"followers" | "following">("followers");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [videos, setVideos] = useState<Post[]>([]);
@@ -219,11 +222,17 @@ const Profile = () => {
             <div className="text-2xl font-bold">{posts.length + videos.length}</div>
             <div className="text-sm text-muted-foreground">Posts</div>
           </div>
-          <div className="text-center p-3 bg-card rounded-xl">
+          <div
+            className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => { setFollowersTab("followers"); setShowFollowers(true); }}
+          >
             <div className="text-2xl font-bold">{followersCount}</div>
             <div className="text-sm text-muted-foreground">Abonnés</div>
           </div>
-          <div className="text-center p-3 bg-card rounded-xl">
+          <div
+            className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => { setFollowersTab("following"); setShowFollowers(true); }}
+          >
             <div className="text-2xl font-bold">{followingCount}</div>
             <div className="text-sm text-muted-foreground">Abonnements</div>
           </div>
@@ -404,6 +413,13 @@ const Profile = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      <FollowersModal
+        open={showFollowers}
+        onOpenChange={setShowFollowers}
+        userId={viewingUserId || ""}
+        defaultTab={followersTab}
+      />
 
       <BottomNav />
     </div>
