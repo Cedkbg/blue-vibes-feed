@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { 
   Play, Heart, MessageCircle, Share2, Volume2, VolumeX, 
   Bookmark, Download, ChevronDown, ChevronUp,
-  Send, Link2, Plus, Repeat2, Check, Hash, Users
+  Send, Link2, Plus, Repeat2, Check, Hash, Users, Compass
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { CommentsSection } from "@/components/CommentsSection";
 import { VideoWatermark } from "@/components/VideoWatermark";
 import { toast } from "sonner";
+import { DiscoverSidebar } from "@/components/DiscoverSidebar";
 import {
   Sheet,
   SheetContent,
@@ -60,6 +61,7 @@ const Video = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isDiscoverOpen, setIsDiscoverOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
@@ -202,6 +204,21 @@ const Video = () => {
   return (
     <div className="min-h-screen bg-black">
       <TopBar title="Vidéos" />
+
+      {/* Discover button */}
+      <button
+        onClick={() => setIsDiscoverOpen(true)}
+        className="fixed top-20 left-3 z-40 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+      >
+        <Compass className="w-5 h-5" />
+      </button>
+
+      {/* Discover Sidebar */}
+      <Sheet open={isDiscoverOpen} onOpenChange={setIsDiscoverOpen}>
+        <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 overflow-y-auto">
+          <DiscoverSidebar onNavigate={() => setIsDiscoverOpen(false)} />
+        </SheetContent>
+      </Sheet>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-screen">
