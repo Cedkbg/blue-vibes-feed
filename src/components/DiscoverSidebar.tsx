@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { SuggestedAccounts } from "@/components/SuggestedAccounts";
+import { HashtagText } from "@/components/HashtagText";
 import {
   Clapperboard, Trophy, Swords, Gamepad2, Coffee, Laugh, Shirt, Newspaper,
   ArrowLeft, Heart, MessageCircle, Play, TrendingUp, Search, X
@@ -190,7 +192,7 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
                             {post.profile?.display_name || post.profile?.username || "Utilisateur"}
                           </span>
                         </div>
-                        <p className="text-xs line-clamp-2">{post.caption}</p>
+                        <HashtagText text={post.caption || ""} className="text-xs line-clamp-2" />
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
                           <span className="flex items-center gap-0.5"><Heart className="w-2.5 h-2.5" /> {post.likes_count}</span>
                           <span className="flex items-center gap-0.5"><MessageCircle className="w-2.5 h-2.5" /> {post.comments_count}</span>
@@ -249,6 +251,8 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
           </Card>
         ))}
       </div>
+
+      <SuggestedAccounts onNavigate={onNavigate} />
     </div>
   );
 };
