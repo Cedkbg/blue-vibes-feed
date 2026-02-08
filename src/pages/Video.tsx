@@ -20,6 +20,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 import { VideoWatermark } from "@/components/VideoWatermark";
 import { toast } from "sonner";
 import { DiscoverSidebar } from "@/components/DiscoverSidebar";
+import { HashtagText } from "@/components/HashtagText";
 import {
   Sheet,
   SheetContent,
@@ -634,10 +635,10 @@ const VideoItem = ({
           </button>
           {caption && (
             <div>
-              <p className="text-white text-sm drop-shadow-md">
-                {displayCaption}
+              <div className="text-white text-sm drop-shadow-md">
+                <HashtagText text={displayCaption} />
                 {shouldTruncate && !isExpanded && "..."}
-              </p>
+              </div>
               {shouldTruncate && (
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
