@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import {
   Clapperboard, Trophy, Swords, Gamepad2, Coffee, Laugh, Shirt, Newspaper,
-  ArrowLeft, Heart, MessageCircle, Play, TrendingUp
+  ArrowLeft, Heart, MessageCircle, Play, TrendingUp, Search, X
 } from "lucide-react";
 
 interface Post {
@@ -56,6 +57,7 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -94,9 +96,20 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
     return posts.filter(post => {
       if (!post.caption) return false;
       const caption = post.caption.toLowerCase();
-      return selectedCategory.keywords.some(kw => caption.includes(kw.toLowerCase()));
+      const matchesCategory = selectedCategory.keywords.some(kw => caption.includes(kw.toLowerCase()));
+      const matchesSearch = !searchQuery || caption.includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, posts]);
+  }, [selectedCategory, posts, searchQuery]);
+
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery) return categories;
+    return categories.filter(cat =>
+      cat.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cat.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cat.keywords.some(kw => kw.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [searchQuery]);
 
   const handlePostClick = (postId: string) => {
     onNavigate();
@@ -106,8 +119,8 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
   if (selectedCategory) {
     return (
       <div className="flex flex-col h-full">
-        <div className="p-4">
-          <Button variant="ghost" size="sm" className="mb-3 gap-2" onClick={() => setSelectedCategory(null)}>
+      <div className="p-4">
+          <Button variant="ghost" size="sm" className="mb-3 gap-2" onClick={() => { setSelectedCategory(null); setSearchQuery(""); }}>
             <ArrowLeft className="w-4 h-4" />
             Retour
           </Button>
@@ -120,6 +133,20 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
             <Badge className="mt-2 bg-white/20 text-white border-none text-xs">
               {filteredPosts.length} publication{filteredPosts.length !== 1 ? "s" : ""}
             </Badge>
+          </div>
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher dans cette catégorie..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 h-9 text-sm"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -182,13 +209,28 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
 
   return (
     <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-bold">Découvrir</h2>
       </div>
 
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher une catégorie..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 pr-8 h-9 text-sm"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
-        {categories.map(cat => (
+        {filteredCategories.map(cat => (
           <Card
             key={cat.id}
             className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
