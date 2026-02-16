@@ -4,7 +4,7 @@ import { FollowersModal } from "@/components/FollowersModal";
 import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { BottomNav } from "@/components/BottomNav";
+import { DesktopLayout } from "@/components/DesktopLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useFollows } from "@/hooks/useFollows";
@@ -194,7 +194,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <DesktopLayout showRightSidebar={false}>
       {/* Header */}
       <header className="bg-primary text-primary-foreground px-4 py-4 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-2">
@@ -489,8 +489,7 @@ const Profile = () => {
         userId={viewingUserId || ""}
       />
 
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 };
 

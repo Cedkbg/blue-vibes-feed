@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { TopBar } from "@/components/TopBar";
-import { BottomNav } from "@/components/BottomNav";
+import { DesktopLayout } from "@/components/DesktopLayout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -192,10 +191,9 @@ const Calls = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <TopBar />
+    <DesktopLayout showRightSidebar={false}>
 
-      <div className="pt-16 px-4 max-w-2xl mx-auto">
+      <div className="px-4 py-4 max-w-2xl mx-auto">
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-accent p-6 mb-6 shadow-glow">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/10 rounded-full blur-3xl" />
@@ -320,8 +318,7 @@ const Calls = () => {
         />
       )}
 
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 };
 
