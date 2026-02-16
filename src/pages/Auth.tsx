@@ -26,10 +26,11 @@ const Auth = () => {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [profession, setProfession] = useState("");
   const [location, setLocation] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; confirmPassword?: string }>({});
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -38,7 +39,7 @@ const Auth = () => {
   }, [user, authLoading, navigate]);
 
   const validateForm = (isSignup = false) => {
-    const newErrors: { email?: string; password?: string; phone?: string } = {};
+    const newErrors: { email?: string; password?: string; phone?: string; confirmPassword?: string } = {};
     
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) {
@@ -54,6 +55,9 @@ const Auth = () => {
       const phoneResult = phoneSchema.safeParse(phoneNumber);
       if (!phoneResult.success) {
         newErrors.phone = phoneResult.error.errors[0].message;
+      }
+      if (password !== confirmPassword) {
+        newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
       }
     }
     
@@ -455,6 +459,25 @@ const Auth = () => {
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                   <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm-password">Confirmer le mot de passe</Label>
+                  <Input
+                    id="signup-confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setErrors({ ...errors, confirmPassword: undefined });
+                    }}
+                    required
+                    minLength={6}
+                    className={errors.confirmPassword ? "border-destructive" : ""}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full font-semibold" disabled={loading}>
                   {loading ? "Inscription..." : "Créer un compte"}
