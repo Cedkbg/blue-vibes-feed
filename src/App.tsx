@@ -18,6 +18,7 @@ import News from "./pages/News";
 import Friends from "./pages/Friends";
 import LiveStream from "./pages/LiveStream";
 import Discover from "./pages/Discover";
+import Pubb from "./pages/Pubb";
 import VideoCall from "./pages/VideoCall";
 import Calls from "./pages/Calls";
 import GroupCall from "./pages/GroupCall";
@@ -52,6 +53,7 @@ const AppContent = () => {
         <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
         <Route path="/live/:streamId?" element={<ProtectedRoute><LiveStream /></ProtectedRoute>} />
         <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
+        <Route path="/pubb" element={<ProtectedRoute><Pubb /></ProtectedRoute>} />
         <Route path="/call/:contactId" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
         <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
         <Route path="/group-call/:groupId" element={<ProtectedRoute><GroupCall /></ProtectedRoute>} />

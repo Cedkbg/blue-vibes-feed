@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads: {
+        Row: {
+          budget: number | null
+          category: string | null
+          clicks_count: number | null
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          link_url: string | null
+          media_type: string | null
+          media_url: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          budget?: number | null
+          category?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          link_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          budget?: number | null
+          category?: string | null
+          clicks_count?: number | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          link_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
