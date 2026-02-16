@@ -494,6 +494,22 @@ const Settings = () => {
           </div>
         </div>
         <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Sons</h3>
+          <div className="bg-card rounded-xl overflow-hidden">
+            <SettingToggle icon={Volume2} title="Son d'appel entrant" subtitle="Jouer une sonnerie lors d'un appel"
+              checked={true} onCheckedChange={() => toast.success("Paramètre mis à jour")} />
+            <Separator />
+            <SettingToggle icon={Volume2} title="Son de message entrant" subtitle="Son à la réception d'un message"
+              checked={true} onCheckedChange={() => toast.success("Paramètre mis à jour")} />
+            <Separator />
+            <SettingToggle icon={Volume2} title="Son de message sortant" subtitle="Son à l'envoi d'un message"
+              checked={false} onCheckedChange={() => toast.success("Paramètre mis à jour")} />
+            <Separator />
+            <SettingToggle icon={Volume2} title="Son de notification" subtitle="Son pour les autres notifications"
+              checked={true} onCheckedChange={() => toast.success("Paramètre mis à jour")} />
+          </div>
+        </div>
+        <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Activité</h3>
           <div className="bg-card rounded-xl overflow-hidden">
             <SettingToggle icon={Heart} title="Likes" subtitle="Quand quelqu'un aime votre contenu"

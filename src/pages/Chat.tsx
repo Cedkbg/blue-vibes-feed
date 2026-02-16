@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, MoreVertical, Phone, Video, X, Reply, Mic, Paperclip, Image, FileText, Play, Pause, Square } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Phone, Video, X, Reply, Mic, Paperclip, Image, FileText, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { EmojiPicker } from "@/components/EmojiPicker";
+import { ContactSettingsSheet } from "@/components/ContactSettingsSheet";
 
 interface Message {
   id: string;
@@ -41,6 +43,8 @@ const Chat = () => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showContactSettings, setShowContactSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -311,6 +315,11 @@ const Chat = () => {
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    inputRef.current?.focus();
+  };
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString("fr-FR", {
       hour: "2-digit",
@@ -392,6 +401,24 @@ const Chat = () => {
     }
   };
 
+  const handleBlockUser = async () => {
+    if (!user || !recipientId) return;
+    await supabase.from("blocked_users").insert({
+      blocker_id: user.id,
+      blocked_id: recipientId,
+    });
+    toast.success("Utilisateur bloqué");
+    navigate("/messages");
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!user || !recipientId) return;
+    await supabase.from("messages").delete()
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id})`);
+    toast.success("Conversation supprimée");
+    navigate("/messages");
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Hidden file inputs */}
@@ -410,22 +437,31 @@ const Chat = () => {
             {recipient?.display_name?.[0] || recipient?.username?.[0] || "?"}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <h1 className="font-semibold">
+        <div className="flex-1 min-w-0">
+          <h1 className="font-semibold truncate">
             {recipient?.display_name || recipient?.username || "Utilisateur"}
           </h1>
           <p className="text-xs text-primary-foreground/70">En ligne</p>
         </div>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate(`/call/${recipientId}?type=audio`)}>
+        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 flex-shrink-0" onClick={() => navigate(`/call/${recipientId}?type=audio`)}>
           <Phone className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => navigate(`/call/${recipientId}?type=video`)}>
+        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 flex-shrink-0" onClick={() => navigate(`/call/${recipientId}?type=video`)}>
           <Video className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10">
+        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10 flex-shrink-0" onClick={() => setShowContactSettings(true)}>
           <MoreVertical className="w-5 h-5" />
         </Button>
       </header>
+
+      {/* Contact Settings Sheet */}
+      <ContactSettingsSheet
+        open={showContactSettings}
+        onOpenChange={setShowContactSettings}
+        contact={recipient}
+        onBlockUser={handleBlockUser}
+        onDeleteConversation={handleDeleteConversation}
+      />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -465,7 +501,7 @@ const Chat = () => {
                   {/* Media content */}
                   {renderMedia(message, isMine)}
 
-                  {/* Text content (hide default text for media-only messages) */}
+                  {/* Text content */}
                   <div className="px-4 py-2">
                     {(!message.media_type || (message.content && !["🎤 Message vocal", "📷 Photo", "🎬 Vidéo", "📎 Fichier"].includes(message.content))) && (
                       <p className="text-sm">{message.content}</p>
@@ -504,6 +540,13 @@ const Chat = () => {
           <Button variant="ghost" size="icon" onClick={cancelReply} className="h-8 w-8">
             <X className="w-4 h-4" />
           </Button>
+        </div>
+      )}
+
+      {/* Emoji picker */}
+      {showEmojiPicker && (
+        <div className="px-4 py-2 border-t border-border">
+          <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmojiPicker(false)} />
         </div>
       )}
 
@@ -548,7 +591,10 @@ const Chat = () => {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setShowAttachMenu(!showAttachMenu)} className="flex-shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className="flex-shrink-0">
+              <Smile className="w-5 h-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className="flex-shrink-0">
               <Paperclip className="w-5 h-5" />
             </Button>
             <Input

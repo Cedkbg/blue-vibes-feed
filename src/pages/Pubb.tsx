@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,14 +172,14 @@ const Pubb = () => {
   return (
     <div className="min-h-screen bg-background pb-20 pt-16">
       <TopBar />
-      <main className="max-w-2xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/discover")}>
+      <main className="max-w-2xl mx-auto px-2 sm:px-4 py-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => navigate("/discover")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Megaphone className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold">Pubb</h1>
+            <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold truncate">Pubb</h1>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -219,16 +218,16 @@ const Pubb = () => {
           </Dialog>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-xs sm:text-sm text-muted-foreground mb-4">
           Plateforme de publicités et promotions
         </p>
 
         {/* Category filters */}
-        <ScrollArea className="mb-4">
-          <div className="flex gap-2 pb-2">
+        <div className="mb-4 overflow-x-auto">
+          <div className="flex gap-2 pb-2 min-w-max">
             <Badge
               variant={filterCategory === "all" ? "default" : "outline"}
-              className="cursor-pointer whitespace-nowrap"
+              className="cursor-pointer whitespace-nowrap text-xs"
               onClick={() => setFilterCategory("all")}
             >
               Tout
@@ -237,7 +236,7 @@ const Pubb = () => {
               <Badge
                 key={c.id}
                 variant={filterCategory === c.id ? "default" : "outline"}
-                className="cursor-pointer whitespace-nowrap gap-1"
+                className="cursor-pointer whitespace-nowrap gap-1 text-xs"
                 onClick={() => setFilterCategory(c.id)}
               >
                 <c.icon className="w-3 h-3" />
@@ -245,7 +244,7 @@ const Pubb = () => {
               </Badge>
             ))}
           </div>
-        </ScrollArea>
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
@@ -298,9 +297,9 @@ const Pubb = () => {
                           </p>
                         </div>
                       </div>
-                      <h3 className="font-bold text-base mb-1">{ad.title}</h3>
+                      <h3 className="font-bold text-sm sm:text-base mb-1 line-clamp-2">{ad.title}</h3>
                       {ad.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{ad.description}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-3">{ad.description}</p>
                       )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
