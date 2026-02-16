@@ -1036,6 +1036,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          request_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          request_count?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          request_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       reposts: {
         Row: {
           comment: string | null
@@ -1344,6 +1371,8 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_call_signals: { Args: never; Returns: undefined }
+      cleanup_expired_rate_limits: { Args: never; Returns: undefined }
+      cleanup_old_call_history: { Args: never; Returns: undefined }
       get_safe_profile: {
         Args: { profile_id: string }
         Returns: {
