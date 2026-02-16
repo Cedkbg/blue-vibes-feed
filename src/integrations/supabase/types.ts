@@ -1344,6 +1344,26 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_call_signals: { Args: never; Returns: undefined }
+      get_safe_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          display_name: string
+          external_link: string
+          id: string
+          is_online: boolean
+          is_private: boolean
+          is_verified: boolean
+          language: string
+          last_seen: string
+          location: string
+          profession: string
+          updated_at: string
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
