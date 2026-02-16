@@ -804,7 +804,10 @@ export type Database = {
           created_at: string
           id: string
           is_read: boolean
+          media_type: string | null
+          media_url: string | null
           receiver_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -812,7 +815,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          media_type?: string | null
+          media_url?: string | null
           receiver_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -820,10 +826,21 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          media_type?: string | null
+          media_url?: string | null
           receiver_id?: string
+          reply_to_id?: string | null
           sender_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
