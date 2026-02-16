@@ -159,11 +159,12 @@ const VideoCall = () => {
 
       {/* Remote video (or contact avatar for audio calls / not connected) */}
       <div className="absolute inset-0 flex items-center justify-center">
-        {callType === "video" && callStatus === "connected" && remoteStream ? (
+        {callType === "video" && remoteStream ? (
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted={false}
             className="w-full h-full object-cover"
           />
         ) : (
