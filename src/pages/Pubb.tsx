@@ -111,13 +111,34 @@ const Pubb = () => {
 
   const handleCreateAd = async () => {
     if (!user || !title.trim()) return;
+    if (title.trim().length > 100) {
+      toast({ title: "Erreur", description: "Le titre ne doit pas dépasser 100 caractères", variant: "destructive" });
+      return;
+    }
+    if (description.trim().length > 500) {
+      toast({ title: "Erreur", description: "La description ne doit pas dépasser 500 caractères", variant: "destructive" });
+      return;
+    }
+    const trimmedLink = linkUrl.trim();
+    if (trimmedLink) {
+      try {
+        const parsed = new URL(trimmedLink);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          toast({ title: "Erreur", description: "Le lien doit commencer par http:// ou https://", variant: "destructive" });
+          return;
+        }
+      } catch {
+        toast({ title: "Erreur", description: "Lien invalide", variant: "destructive" });
+        return;
+      }
+    }
     const { error } = await supabase.from("ads").insert({
       user_id: user.id,
-      title: title.trim(),
-      description: description.trim() || null,
+      title: title.trim().slice(0, 100),
+      description: description.trim().slice(0, 500) || null,
       media_url: mediaUrl || null,
       media_type: mediaUrl ? (mediaUrl.match(/\.(mp4|webm|mov)$/i) ? "video" : "image") : null,
-      link_url: linkUrl.trim() || null,
+      link_url: trimmedLink || null,
       category,
     });
     if (error) {
@@ -130,11 +151,20 @@ const Pubb = () => {
     }
   };
 
+  const isValidUrl = (url: string): boolean => {
+    try {
+      const parsed = new URL(url);
+      return ["http:", "https:"].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  };
+
   const handleAdClick = async (ad: Ad) => {
-    // Increment clicks
-    await supabase.from("ads").update({ clicks_count: ad.clicks_count + 1 }).eq("id", ad.id);
-    if (ad.link_url) {
-      window.open(ad.link_url, "_blank");
+    // Safely increment clicks via RPC (no race condition)
+    await supabase.rpc("increment_ad_clicks", { ad_id: ad.id });
+    if (ad.link_url && isValidUrl(ad.link_url)) {
+      window.open(ad.link_url, "_blank", "noopener,noreferrer");
     }
   };
 
