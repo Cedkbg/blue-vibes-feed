@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart } from "lucide-react";
 import { FollowersModal } from "@/components/FollowersModal";
+import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { BottomNav } from "@/components/BottomNav";
@@ -44,11 +45,13 @@ const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
+  const [showLikers, setShowLikers] = useState(false);
   const [followersTab, setFollowersTab] = useState<"followers" | "following">("followers");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [videos, setVideos] = useState<Post[]>([]);
   const [favorites, setFavorites] = useState<Post[]>([]);
+  const [totalLikes, setTotalLikes] = useState(0);
   
   // Determine if viewing own profile or someone else's
   const viewingUserId = userId || user?.id;
@@ -71,6 +74,30 @@ const Profile = () => {
       }
     }
   }, [viewingUserId, isOwnProfile]);
+
+  // Track profile visit
+  useEffect(() => {
+    const recordVisit = async () => {
+      if (!user || !viewingUserId || isOwnProfile) return;
+      try {
+        // Record visit - may fail if table doesn't exist yet
+        await (supabase as any).from("profile_visits").insert({
+          profile_id: viewingUserId,
+          visitor_id: user.id,
+        });
+        // Send notification
+        await supabase.from("notifications").insert({
+          user_id: viewingUserId,
+          type: "profile_visit",
+          content: "a consulté votre profil",
+          from_user_id: user.id,
+        });
+      } catch (e) {
+        // Silently fail
+      }
+    };
+    recordVisit();
+  }, [viewingUserId, user, isOwnProfile]);
 
   const fetchProfile = async () => {
     if (!viewingUserId) return;
@@ -102,6 +129,7 @@ const Profile = () => {
     if (!error && data) {
       setPosts(data.filter(p => p.media_type === "image" || !p.media_type));
       setVideos(data.filter(p => p.media_type === "video"));
+      setTotalLikes(data.reduce((sum, p) => sum + (p.likes_count || 0), 0));
     }
   };
 
@@ -218,9 +246,15 @@ const Profile = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold">{posts.length + videos.length}</div>
-            <div className="text-sm text-muted-foreground">Posts</div>
+          <div
+            className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => setShowLikers(true)}
+          >
+            <div className="text-2xl font-bold flex items-center justify-center gap-1">
+              <Heart className="w-5 h-5 text-destructive fill-destructive" />
+              {totalLikes}
+            </div>
+            <div className="text-sm text-muted-foreground">J'aime</div>
           </div>
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
@@ -419,6 +453,12 @@ const Profile = () => {
         onOpenChange={setShowFollowers}
         userId={viewingUserId || ""}
         defaultTab={followersTab}
+      />
+
+      <LikersModal
+        open={showLikers}
+        onOpenChange={setShowLikers}
+        userId={viewingUserId || ""}
       />
 
       <BottomNav />
