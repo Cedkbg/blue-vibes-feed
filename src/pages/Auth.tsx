@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import cedliteLogo from "@/assets/cedlite-logo.png";
 import { z } from "zod";
+import OnboardingWelcome from "@/components/OnboardingWelcome";
+import OnboardingFeatures from "@/components/OnboardingFeatures";
 
 const emailSchema = z.string().email("Email invalide");
 const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
@@ -20,6 +22,7 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -236,37 +239,16 @@ const Auth = () => {
     );
   }
 
+  if (onboardingStep === 0) {
+    return <OnboardingWelcome onNext={() => setOnboardingStep(1)} />;
+  }
+
+  if (onboardingStep === 1) {
+    return <OnboardingFeatures onBack={() => setOnboardingStep(0)} onNext={() => { sessionStorage.setItem("cedlite_onboarded", "true"); setOnboardingStep(null); }} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4 py-8 overflow-y-auto">
-      {/* Welcome Message */}
-      <div className="w-full max-w-md mb-6 text-center space-y-3">
-        <h2 className="text-2xl font-bold text-foreground">Bienvenue sur CedLite 🎉</h2>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          Rejoignez la communauté où chaque voix compte. Sur CedLite, partagez vos talents, 
-          découvrez du contenu authentique et connectez-vous avec des créateurs du monde entier.
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
-            <span>🎬</span>
-            <span>Créez et partagez des vidéos</span>
-          </div>
-          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
-            <span>🔴</span>
-            <span>Passez en live</span>
-          </div>
-          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
-            <span>💬</span>
-            <span>Messagerie instantanée</span>
-          </div>
-          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
-            <span>🌍</span>
-            <span>Communauté mondiale</span>
-          </div>
-        </div>
-        <p className="text-xs text-primary font-medium">
-          100% gratuit • Respect de la vie privée • Contenu de qualité
-        </p>
-      </div>
 
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="text-center space-y-4 pb-2">
@@ -279,7 +261,11 @@ const Auth = () => {
           </div>
         </CardHeader>
         <CardContent className="pt-4">
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue="signin" className="w-full" onValueChange={(val) => {
+            if (val === "signup" && onboardingStep === null && !sessionStorage.getItem("cedlite_onboarded")) {
+              setOnboardingStep(0);
+            }
+          }}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
               <TabsTrigger value="signup">Inscription</TabsTrigger>
