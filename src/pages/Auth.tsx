@@ -237,7 +237,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4 py-8 overflow-y-auto">
       {/* Welcome Message */}
       <div className="w-full max-w-md mb-6 text-center space-y-3">
         <h2 className="text-2xl font-bold text-foreground">Bienvenue sur CedLite 🎉</h2>
