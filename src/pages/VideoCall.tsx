@@ -33,6 +33,7 @@ const VideoCall = () => {
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   const {
     callStatus,
@@ -100,15 +101,24 @@ const VideoCall = () => {
     }
   }, [localStream]);
 
-  // Attach remote stream to video element
+  // Attach remote stream to video and audio elements
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteStream) {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+        remoteAudioRef.current.play().catch(e => console.error("Audio play error:", e));
+      }
     }
   }, [remoteStream]);
 
   const toggleSpeaker = () => {
     setIsSpeakerOff(!isSpeakerOff);
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.muted = !isSpeakerOff;
+    }
     if (remoteVideoRef.current) {
       remoteVideoRef.current.muted = !isSpeakerOff;
     }
@@ -132,6 +142,8 @@ const VideoCall = () => {
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Hidden audio element for remote audio playback */}
+      <audio ref={remoteAudioRef} autoPlay playsInline />
       {/* Back button */}
       <Button
         variant="ghost"

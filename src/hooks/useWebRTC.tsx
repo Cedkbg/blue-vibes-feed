@@ -49,7 +49,11 @@ export const useWebRTC = ({ contactId, callType, isIncoming, onCallEnded, onCall
   const initLocalStream = useCallback(async () => {
     try {
       const constraints: MediaStreamConstraints = {
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
         video: callType === "video" ? { facingMode: "user" } : false,
       };
 
