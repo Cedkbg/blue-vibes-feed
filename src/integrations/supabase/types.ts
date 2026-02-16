@@ -850,6 +850,27 @@ export type Database = {
           },
         ]
       }
+      profile_visits: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
