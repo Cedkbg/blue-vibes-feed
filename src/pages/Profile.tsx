@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3 } from "lucide-react";
 import { FollowersModal } from "@/components/FollowersModal";
 import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ interface Post {
   media_url: string | null;
   media_type: string | null;
   likes_count: number;
+  comments_count: number;
 }
 
 interface FavoritePost {
@@ -52,6 +53,8 @@ const Profile = () => {
   const [videos, setVideos] = useState<Post[]>([]);
   const [favorites, setFavorites] = useState<Post[]>([]);
   const [totalLikes, setTotalLikes] = useState(0);
+  const [totalComments, setTotalComments] = useState(0);
+  const [totalViews, setTotalViews] = useState(0);
   
   // Determine if viewing own profile or someone else's
   const viewingUserId = userId || user?.id;
@@ -122,7 +125,7 @@ const Profile = () => {
 
     const { data, error } = await supabase
       .from("posts")
-      .select("id, media_url, media_type, likes_count")
+      .select("id, media_url, media_type, likes_count, comments_count")
       .eq("user_id", viewingUserId)
       .order("created_at", { ascending: false });
 
@@ -130,6 +133,17 @@ const Profile = () => {
       setPosts(data.filter(p => p.media_type === "image" || !p.media_type));
       setVideos(data.filter(p => p.media_type === "video"));
       setTotalLikes(data.reduce((sum, p) => sum + (p.likes_count || 0), 0));
+      setTotalComments(data.reduce((sum, p) => sum + (p.comments_count || 0), 0));
+    }
+
+    // Fetch story views as "total views"
+    const { data: storiesData } = await supabase
+      .from("stories")
+      .select("views_count")
+      .eq("user_id", viewingUserId);
+    
+    if (storiesData) {
+      setTotalViews(storiesData.reduce((sum, s) => sum + (s.views_count || 0), 0));
     }
   };
 
@@ -245,30 +259,44 @@ const Profile = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-5 gap-2 mb-6">
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => setShowLikers(true)}
           >
-            <div className="text-2xl font-bold flex items-center justify-center gap-1">
-              <Heart className="w-5 h-5 text-destructive fill-destructive" />
+            <div className="text-xl font-bold flex items-center justify-center gap-1">
+              <Heart className="w-4 h-4 text-destructive fill-destructive" />
               {totalLikes}
             </div>
-            <div className="text-sm text-muted-foreground">J'aime</div>
+            <div className="text-xs text-muted-foreground">J'aime</div>
+          </div>
+          <div className="text-center p-3 bg-card rounded-xl">
+            <div className="text-xl font-bold flex items-center justify-center gap-1">
+              <Eye className="w-4 h-4 text-primary" />
+              {totalViews}
+            </div>
+            <div className="text-xs text-muted-foreground">Vues</div>
+          </div>
+          <div className="text-center p-3 bg-card rounded-xl">
+            <div className="text-xl font-bold flex items-center justify-center gap-1">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              {totalComments}
+            </div>
+            <div className="text-xs text-muted-foreground">Comm.</div>
           </div>
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => { setFollowersTab("followers"); setShowFollowers(true); }}
           >
-            <div className="text-2xl font-bold">{followersCount}</div>
-            <div className="text-sm text-muted-foreground">Abonnés</div>
+            <div className="text-xl font-bold">{followersCount}</div>
+            <div className="text-xs text-muted-foreground">Abonnés</div>
           </div>
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => { setFollowersTab("following"); setShowFollowers(true); }}
           >
-            <div className="text-2xl font-bold">{followingCount}</div>
-            <div className="text-sm text-muted-foreground">Abonnements</div>
+            <div className="text-xl font-bold">{followingCount}</div>
+            <div className="text-xs text-muted-foreground">Abos</div>
           </div>
         </div>
 
