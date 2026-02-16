@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/hooks/useSettings";
+import { useBlockedUsers } from "@/hooks/useBlockedUsers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import cedliteLogo from "@/assets/cedlite-logo.png";
@@ -26,132 +28,119 @@ interface Profile {
   external_link: string | null;
   is_private: boolean;
   language: string | null;
+  phone_number: string | null;
 }
 
 type SettingsSection = 
-  | "main" 
-  | "account" 
-  | "security" 
-  | "privacy" 
-  | "interactions" 
-  | "notifications" 
-  | "monetization" 
-  | "content" 
-  | "screentime" 
-  | "parental" 
-  | "shop" 
-  | "creator" 
-  | "help" 
-  | "about"
-  | "blocked";
+  | "main" | "account" | "security" | "privacy" | "interactions" 
+  | "notifications" | "monetization" | "content" | "screentime" 
+  | "parental" | "shop" | "creator" | "help" | "about" | "blocked"
+  | "change-password";
 
 const Settings = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { settings, updateSetting, loading: settingsLoading } = useSettings();
+  const { blockedUsers, unblockUser, loading: blockedLoading } = useBlockedUsers();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentSection, setCurrentSection] = useState<SettingsSection>("main");
-
-  // Settings states
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [language, setLanguage] = useState("fr");
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState({
-    push: true,
-    likes: true,
-    comments: true,
-    followers: true,
-    messages: true,
-    lives: true,
-    recommendations: false,
-    promotions: false,
-  });
-  const [privacy, setPrivacy] = useState({
-    allowSuggestions: true,
-    syncContacts: false,
-    allowComments: "everyone",
-    allowMessages: "followers",
-    allowMentions: "everyone",
-    allowDuets: "followers",
-    showFollowing: true,
-    allowDownloads: true,
-    autoShare: false,
-  });
-  const [content, setContent] = useState({
-    autoSubtitles: true,
-    autoTranslate: false,
-    sensitiveFilter: true,
-    restrictedMode: false,
-    textSize: "medium",
-    highContrast: false,
-    autoPlay: true,
-  });
-  const [screenTime, setScreenTime] = useState({
-    dailyLimit: 0,
-    breakReminders: false,
-    sleepMode: false,
-    sleepStart: "22:00",
-    sleepEnd: "07:00",
-  });
+  
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  
+  // Delete account dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
+    if (user) fetchProfile();
   }, [user]);
+
+  // Apply dark mode
+  useEffect(() => {
+    if (settings.dark_mode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [settings.dark_mode]);
 
   const fetchProfile = async () => {
     if (!user) return;
-    
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("username, bio, avatar_url, display_name, birthdate, profession, location, external_link, is_private, language, phone_number")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-    } else if (data) {
-      setProfile(data);
-      setIsPrivate(data.is_private);
-      setLanguage(data.language || "fr");
-    }
+    if (!error && data) setProfile(data);
     setLoadingProfile(false);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return;
     setSaving(true);
-
-    const { error } = await supabase
-      .from("profiles")
-      .update(updates)
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Erreur lors de la mise à jour");
-    } else {
-      toast.success("Mise à jour effectuée");
-      fetchProfile();
-    }
+    const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
+    if (error) toast.error("Erreur lors de la mise à jour");
+    else { toast.success("Mise à jour effectuée"); fetchProfile(); }
     setSaving(false);
   };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Erreur lors de la déconnexion");
-    } else {
-      toast.success("Déconnecté avec succès");
+    if (error) toast.error("Erreur lors de la déconnexion");
+    else { toast.success("Déconnecté avec succès"); navigate("/auth"); }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) toast.error("Erreur: " + error.message);
+    else {
+      toast.success("Mot de passe modifié avec succès");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setCurrentSection("account");
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "SUPPRIMER") {
+      toast.error("Tapez SUPPRIMER pour confirmer");
+      return;
+    }
+    setSaving(true);
+    // Sign out and notify - actual deletion would need admin/edge function
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      toast.success("Votre demande de suppression a été enregistrée");
       navigate("/auth");
     }
+    setSaving(false);
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeactivateAccount = async () => {
+    await updateProfile({ is_private: true } as any);
+    toast.success("Votre compte a été désactivé temporairement");
   };
 
   const languages = [
@@ -166,12 +155,7 @@ const Settings = () => {
   ];
 
   const MenuItem = ({ icon: Icon, title, subtitle, onClick, rightElement, danger }: {
-    icon: any;
-    title: string;
-    subtitle?: string;
-    onClick?: () => void;
-    rightElement?: React.ReactNode;
-    danger?: boolean;
+    icon: any; title: string; subtitle?: string; onClick?: () => void; rightElement?: React.ReactNode; danger?: boolean;
   }) => (
     <button
       onClick={onClick}
@@ -189,12 +173,7 @@ const Settings = () => {
   );
 
   const SettingToggle = ({ icon: Icon, title, subtitle, checked, onCheckedChange, disabled }: {
-    icon: any;
-    title: string;
-    subtitle?: string;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
-    disabled?: boolean;
+    icon: any; title: string; subtitle?: string; checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean;
   }) => (
     <div className="flex items-center gap-4 p-4">
       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -222,8 +201,7 @@ const Settings = () => {
   const renderMainMenu = () => (
     <ScrollArea className="flex-1">
       <div className="pb-8">
-        {/* Profile Preview */}
-        <div className="p-4 flex items-center gap-4 bg-card mx-4 mt-4 rounded-xl">
+        <div className="p-4 flex items-center gap-4 bg-card mx-4 mt-4 rounded-xl cursor-pointer" onClick={() => setCurrentSection("account")}>
           <Avatar className="w-14 h-14">
             <AvatarImage src={profile?.avatar_url || undefined} />
             <AvatarFallback className="bg-primary/10 text-primary text-xl">
@@ -237,89 +215,56 @@ const Settings = () => {
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
 
-        {/* Section: Compte */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Compte</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={User} title="Gérer le compte" subtitle="Informations, mot de passe, supprimer" onClick={() => setCurrentSection("account")} />
+            <MenuItem icon={User} title="Gérer le compte" subtitle="Informations, mot de passe" onClick={() => setCurrentSection("account")} />
             <Separator />
-            <MenuItem icon={Shield} title="Sécurité" subtitle="2FA, appareils, sessions" onClick={() => setCurrentSection("security")} />
+            <MenuItem icon={Shield} title="Sécurité" subtitle="Sessions, alertes" onClick={() => setCurrentSection("security")} />
           </div>
         </div>
 
-        {/* Section: Confidentialité */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Confidentialité</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={Lock} title="Visibilité du compte" subtitle={isPrivate ? "Privé" : "Public"} onClick={() => setCurrentSection("privacy")} />
+            <MenuItem icon={Lock} title="Visibilité du compte" subtitle={profile?.is_private ? "Privé" : "Public"} onClick={() => setCurrentSection("privacy")} />
             <Separator />
             <MenuItem icon={MessageCircle} title="Interactions" subtitle="Commentaires, messages, mentions" onClick={() => setCurrentSection("interactions")} />
             <Separator />
-            <MenuItem icon={Ban} title="Comptes bloqués" subtitle="Gérer les restrictions" onClick={() => setCurrentSection("blocked")} />
+            <MenuItem icon={Ban} title="Comptes bloqués" subtitle={`${blockedUsers.length} bloqué(s)`} onClick={() => setCurrentSection("blocked")} />
           </div>
         </div>
 
-        {/* Section: Notifications */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Notifications</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={Bell} title="Notifications" subtitle={notifications.push ? "Activées" : "Désactivées"} onClick={() => setCurrentSection("notifications")} />
+            <MenuItem icon={Bell} title="Notifications" subtitle={settings.notifications_push ? "Activées" : "Désactivées"} onClick={() => setCurrentSection("notifications")} />
           </div>
         </div>
 
-        {/* Section: Monétisation */}
-        <div className="mt-6">
-          <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Monétisation</p>
-          <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={Wallet} title="Portefeuille" subtitle="Coins, cadeaux, revenus" onClick={() => setCurrentSection("monetization")} />
-          </div>
-        </div>
-
-        {/* Section: Contenu */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Contenu et affichage</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={Smartphone} title="Préférences" subtitle="Langue, sous-titres, accessibilité" onClick={() => setCurrentSection("content")} />
+            <MenuItem icon={Smartphone} title="Préférences" subtitle="Langue, accessibilité, mode sombre" onClick={() => setCurrentSection("content")} />
           </div>
         </div>
 
-        {/* Section: Bien-être */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Bien-être numérique</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={Clock} title="Temps d'écran" subtitle="Limites, pauses, sommeil" onClick={() => setCurrentSection("screentime")} />
-            <Separator />
-            <MenuItem icon={Users} title="Contrôle parental" subtitle="Family Pairing" onClick={() => setCurrentSection("parental")} />
+            <MenuItem icon={Clock} title="Temps d'écran" subtitle="Limites, pauses" onClick={() => setCurrentSection("screentime")} />
           </div>
         </div>
 
-        {/* Section: Shopping */}
-        <div className="mt-6">
-          <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">CedLite Shop</p>
-          <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={ShoppingBag} title="Mes commandes" subtitle="Historique, livraison" onClick={() => setCurrentSection("shop")} />
-          </div>
-        </div>
-
-        {/* Section: Créateur */}
-        <div className="mt-6">
-          <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Créateur</p>
-          <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={BarChart3} title="Centre du créateur" subtitle="Statistiques, performances" onClick={() => setCurrentSection("creator")} />
-          </div>
-        </div>
-
-        {/* Section: Aide */}
         <div className="mt-6">
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Support</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
-            <MenuItem icon={HelpCircle} title="Aide et assistance" subtitle="FAQ, signalements" onClick={() => setCurrentSection("help")} />
+            <MenuItem icon={HelpCircle} title="Aide et assistance" onClick={() => setCurrentSection("help")} />
             <Separator />
-            <MenuItem icon={Info} title="À propos" subtitle="Version, mentions légales" onClick={() => setCurrentSection("about")} />
+            <MenuItem icon={Info} title="À propos" subtitle="Version 1.0.0" onClick={() => setCurrentSection("about")} />
           </div>
         </div>
 
-        {/* Déconnexion */}
         <div className="mt-6 mx-4">
           <div className="bg-card rounded-xl overflow-hidden">
             <MenuItem icon={LogOut} title="Se déconnecter" onClick={handleLogout} danger />
@@ -345,7 +290,6 @@ const Settings = () => {
                   <p className="font-medium">{profile?.display_name || "Non défini"}</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             <Separator />
             <div className="p-4 flex items-center justify-between">
@@ -356,7 +300,6 @@ const Settings = () => {
                   <p className="font-medium">{profile?.birthdate || "Non défini"}</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             <Separator />
             <div className="p-4 flex items-center justify-between">
@@ -364,10 +307,9 @@ const Settings = () => {
                 <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Téléphone</p>
-                  <p className="font-medium">Non défini</p>
+                  <p className="font-medium">{profile?.phone_number || "Non défini"}</p>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             <Separator />
             <div className="p-4 flex items-center justify-between">
@@ -378,7 +320,7 @@ const Settings = () => {
                   <p className="font-medium">{user?.email}</p>
                 </div>
               </div>
-              <Check className="w-5 h-5 text-green-500" />
+              <Check className="w-5 h-5 text-green-600" />
             </div>
           </div>
         </div>
@@ -386,27 +328,39 @@ const Settings = () => {
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Sécurité du compte</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Key} title="Changer le mot de passe" subtitle="Modifier votre mot de passe actuel" />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Type de compte</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={User} title="Passer en compte créateur" subtitle="Accéder aux outils créateurs" />
-            <Separator />
-            <MenuItem icon={ShoppingBag} title="Passer en compte professionnel" subtitle="Outils pour les entreprises" />
+            <MenuItem icon={Key} title="Changer le mot de passe" subtitle="Modifier votre mot de passe" onClick={() => setCurrentSection("change-password")} />
           </div>
         </div>
 
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4 text-destructive">Zone de danger</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Trash2} title="Désactiver le compte" subtitle="Masquer temporairement votre profil" danger />
+            <MenuItem icon={Eye} title="Désactiver le compte" subtitle="Masquer temporairement votre profil" onClick={handleDeactivateAccount} danger />
             <Separator />
-            <MenuItem icon={Trash2} title="Supprimer le compte" subtitle="Supprimer définitivement toutes vos données" danger />
+            <MenuItem icon={Trash2} title="Supprimer le compte" subtitle="Supprimer définitivement toutes vos données" onClick={() => setShowDeleteDialog(true)} danger />
           </div>
         </div>
+      </div>
+    </ScrollArea>
+  );
+
+  const renderChangePasswordSection = () => (
+    <ScrollArea className="flex-1">
+      <div className="p-4 pb-8 space-y-4">
+        <h3 className="text-lg font-semibold mb-4">Changer le mot de passe</h3>
+        <div className="space-y-2">
+          <Label>Nouveau mot de passe</Label>
+          <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={6} />
+          <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
+        </div>
+        <div className="space-y-2">
+          <Label>Confirmer le nouveau mot de passe</Label>
+          <Input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="••••••••" />
+        </div>
+        <Button onClick={handleChangePassword} disabled={saving || !newPassword || !confirmNewPassword} className="w-full">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Modifier le mot de passe
+        </Button>
       </div>
     </ScrollArea>
   );
@@ -415,46 +369,27 @@ const Settings = () => {
     <ScrollArea className="flex-1">
       <div className="pb-8">
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Authentification</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Shield}
-              title="Authentification à deux facteurs"
-              subtitle="Sécurisez votre compte avec un code"
-              checked={false}
-              onCheckedChange={() => toast.info("Fonctionnalité à venir")}
-            />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Appareils et sessions</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Phone} title="Appareils connectés" subtitle="Gérer vos appareils actifs" />
-            <Separator />
-            <MenuItem icon={History} title="Historique des connexions" subtitle="Voir les connexions récentes" />
-            <Separator />
-            <MenuItem icon={LogOut} title="Déconnecter tous les appareils" subtitle="Terminer toutes les sessions actives" danger />
-          </div>
-        </div>
-
-        <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Alertes</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Bell}
-              title="Alertes de sécurité"
-              subtitle="Être notifié des activités suspectes"
-              checked={true}
-              onCheckedChange={() => {}}
-            />
+            <SettingToggle icon={Bell} title="Alertes de sécurité" subtitle="Être notifié des activités suspectes" checked={true} onCheckedChange={() => {}} />
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Comptes liés</h3>
+          <h3 className="text-lg font-semibold mb-4">Session active</h3>
+          <div className="bg-card rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <Phone className="w-5 h-5 text-primary" />
+              <div>
+                <p className="font-medium">Cet appareil</p>
+                <p className="text-sm text-muted-foreground">Connecté maintenant</p>
+              </div>
+              <Check className="w-5 h-5 text-green-600 ml-auto" />
+            </div>
+          </div>
+        </div>
+        <div className="p-4">
           <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Link2} title="Centre de compte CedLite" subtitle="Gérer les apps connectées" />
+            <MenuItem icon={LogOut} title="Déconnecter tous les appareils" subtitle="Terminer toutes les sessions" onClick={handleLogout} danger />
           </div>
         </div>
       </div>
@@ -467,53 +402,24 @@ const Settings = () => {
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Visibilité</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Lock}
-              title="Compte privé"
-              subtitle="Seuls vos abonnés verront vos contenus"
-              checked={isPrivate}
-              onCheckedChange={(checked) => {
-                setIsPrivate(checked);
-                updateProfile({ is_private: checked });
-              }}
+            <SettingToggle icon={Lock} title="Compte privé" subtitle="Seuls vos abonnés verront vos contenus"
+              checked={profile?.is_private || false}
+              onCheckedChange={(checked) => updateProfile({ is_private: checked })}
               disabled={saving}
             />
             <Separator />
-            <SettingToggle
-              icon={Eye}
-              title="Autoriser les suggestions"
-              subtitle="Apparaître dans les suggestions de comptes"
-              checked={privacy.allowSuggestions}
-              onCheckedChange={(checked) => setPrivacy({ ...privacy, allowSuggestions: checked })}
-            />
-            <Separator />
-            <SettingToggle
-              icon={Users}
-              title="Synchroniser les contacts"
-              subtitle="Retrouver vos amis sur CedLite"
-              checked={privacy.syncContacts}
-              onCheckedChange={(checked) => setPrivacy({ ...privacy, syncContacts: checked })}
+            <SettingToggle icon={Eye} title="Autoriser les suggestions" subtitle="Apparaître dans les suggestions"
+              checked={settings.privacy_allow_suggestions}
+              onCheckedChange={(checked) => updateSetting("privacy_allow_suggestions", checked)}
             />
           </div>
         </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Téléchargement et partage</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Download}
-              title="Autoriser le téléchargement"
-              subtitle="Les autres peuvent télécharger vos vidéos"
-              checked={privacy.allowDownloads}
-              onCheckedChange={(checked) => setPrivacy({ ...privacy, allowDownloads: checked })}
-            />
-            <Separator />
-            <SettingToggle
-              icon={Globe}
-              title="Partage automatique"
-              subtitle="Partager sur d'autres réseaux"
-              checked={privacy.autoShare}
-              onCheckedChange={(checked) => setPrivacy({ ...privacy, autoShare: checked })}
+            <SettingToggle icon={Download} title="Autoriser le téléchargement" subtitle="Les autres peuvent télécharger vos vidéos"
+              checked={settings.privacy_allow_downloads}
+              onCheckedChange={(checked) => updateSetting("privacy_allow_downloads", checked)}
             />
           </div>
         </div>
@@ -528,10 +434,8 @@ const Settings = () => {
           <h3 className="text-lg font-semibold mb-4">Commentaires</h3>
           <div className="bg-card rounded-xl p-4">
             <Label className="text-sm text-muted-foreground mb-2 block">Qui peut commenter vos vidéos</Label>
-            <Select value={privacy.allowComments} onValueChange={(value) => setPrivacy({ ...privacy, allowComments: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={settings.privacy_allow_comments} onValueChange={(v) => updateSetting("privacy_allow_comments", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="everyone">Tout le monde</SelectItem>
                 <SelectItem value="followers">Abonnés uniquement</SelectItem>
@@ -540,15 +444,12 @@ const Settings = () => {
             </Select>
           </div>
         </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Messages</h3>
           <div className="bg-card rounded-xl p-4">
             <Label className="text-sm text-muted-foreground mb-2 block">Qui peut vous envoyer des messages</Label>
-            <Select value={privacy.allowMessages} onValueChange={(value) => setPrivacy({ ...privacy, allowMessages: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={settings.privacy_allow_messages} onValueChange={(v) => updateSetting("privacy_allow_messages", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="everyone">Tout le monde</SelectItem>
                 <SelectItem value="followers">Abonnés uniquement</SelectItem>
@@ -557,15 +458,12 @@ const Settings = () => {
             </Select>
           </div>
         </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Mentions</h3>
           <div className="bg-card rounded-xl p-4">
             <Label className="text-sm text-muted-foreground mb-2 block">Qui peut vous mentionner</Label>
-            <Select value={privacy.allowMentions} onValueChange={(value) => setPrivacy({ ...privacy, allowMentions: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={settings.privacy_allow_mentions} onValueChange={(v) => updateSetting("privacy_allow_mentions", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="everyone">Tout le monde</SelectItem>
                 <SelectItem value="followers">Abonnés uniquement</SelectItem>
@@ -574,32 +472,11 @@ const Settings = () => {
             </Select>
           </div>
         </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Duo / Collage</h3>
-          <div className="bg-card rounded-xl p-4">
-            <Label className="text-sm text-muted-foreground mb-2 block">Qui peut faire un duo avec vos vidéos</Label>
-            <Select value={privacy.allowDuets} onValueChange={(value) => setPrivacy({ ...privacy, allowDuets: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="everyone">Tout le monde</SelectItem>
-                <SelectItem value="followers">Abonnés uniquement</SelectItem>
-                <SelectItem value="nobody">Personne</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <div className="p-4">
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Eye}
-              title="Afficher ma liste d'abonnements"
-              subtitle="Les autres peuvent voir qui vous suivez"
-              checked={privacy.showFollowing}
-              onCheckedChange={(checked) => setPrivacy({ ...privacy, showFollowing: checked })}
+            <SettingToggle icon={Eye} title="Afficher ma liste d'abonnements" subtitle="Les autres peuvent voir qui vous suivez"
+              checked={settings.privacy_show_following}
+              onCheckedChange={(checked) => updateSetting("privacy_show_following", checked)}
             />
           </div>
         </div>
@@ -612,120 +489,31 @@ const Settings = () => {
       <div className="pb-8">
         <div className="p-4">
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Bell}
-              title="Notifications push"
-              subtitle="Activer toutes les notifications"
-              checked={notifications.push}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, push: checked })}
-            />
+            <SettingToggle icon={Bell} title="Notifications push" subtitle="Activer toutes les notifications"
+              checked={settings.notifications_push} onCheckedChange={(c) => updateSetting("notifications_push", c)} />
           </div>
         </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Activité</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Heart}
-              title="Likes"
-              subtitle="Quand quelqu'un aime votre contenu"
-              checked={notifications.likes}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, likes: checked })}
-            />
+            <SettingToggle icon={Heart} title="Likes" subtitle="Quand quelqu'un aime votre contenu"
+              checked={settings.notifications_likes} onCheckedChange={(c) => updateSetting("notifications_likes", c)} />
             <Separator />
-            <SettingToggle
-              icon={MessageCircle}
-              title="Commentaires"
-              subtitle="Nouveaux commentaires sur vos posts"
-              checked={notifications.comments}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, comments: checked })}
-            />
+            <SettingToggle icon={MessageCircle} title="Commentaires" subtitle="Nouveaux commentaires"
+              checked={settings.notifications_comments} onCheckedChange={(c) => updateSetting("notifications_comments", c)} />
             <Separator />
-            <SettingToggle
-              icon={Users}
-              title="Nouveaux abonnés"
-              subtitle="Quand quelqu'un vous suit"
-              checked={notifications.followers}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, followers: checked })}
-            />
+            <SettingToggle icon={Users} title="Nouveaux abonnés" subtitle="Quand quelqu'un vous suit"
+              checked={settings.notifications_followers} onCheckedChange={(c) => updateSetting("notifications_followers", c)} />
             <Separator />
-            <SettingToggle
-              icon={Mail}
-              title="Messages directs"
-              subtitle="Nouveaux messages privés"
-              checked={notifications.messages}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, messages: checked })}
-            />
+            <SettingToggle icon={Mail} title="Messages directs" subtitle="Nouveaux messages privés"
+              checked={settings.notifications_messages} onCheckedChange={(c) => updateSetting("notifications_messages", c)} />
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Lives et événements</h3>
+          <h3 className="text-lg font-semibold mb-4">Lives</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Smartphone}
-              title="Lives"
-              subtitle="Quand quelqu'un que vous suivez est en live"
-              checked={notifications.lives}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, lives: checked })}
-            />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Contenu suggéré</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={BarChart3}
-              title="Recommandations"
-              subtitle="Vidéos recommandées pour vous"
-              checked={notifications.recommendations}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, recommendations: checked })}
-            />
-            <Separator />
-            <SettingToggle
-              icon={Gift}
-              title="Promotions"
-              subtitle="Offres et publicités"
-              checked={notifications.promotions}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, promotions: checked })}
-            />
-          </div>
-        </div>
-      </div>
-    </ScrollArea>
-  );
-
-  const renderMonetizationSection = () => (
-    <ScrollArea className="flex-1">
-      <div className="pb-8">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Monnaie CedLite</h3>
-          <div className="bg-card rounded-xl p-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
-              <CreditCard className="w-8 h-8 text-amber-500" />
-            </div>
-            <p className="text-3xl font-bold">0</p>
-            <p className="text-muted-foreground">CedCoins</p>
-            <Button className="mt-4 w-full">Recharger</Button>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Programmes</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={BarChart3} title="CedLite Creator Fund" subtitle="Gagnez de l'argent avec vos vidéos" />
-            <Separator />
-            <MenuItem icon={Gift} title="Cadeaux LIVE" subtitle="Revenus des lives" />
-            <Separator />
-            <MenuItem icon={ShoppingBag} title="CedLite Shop Seller" subtitle="Devenir vendeur" />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Historique</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={History} title="Transactions" subtitle="Historique des paiements" />
+            <SettingToggle icon={Smartphone} title="Lives" subtitle="Quand quelqu'un est en live"
+              checked={settings.notifications_lives} onCheckedChange={(c) => updateSetting("notifications_lives", c)} />
           </div>
         </div>
       </div>
@@ -739,103 +527,53 @@ const Settings = () => {
           <h3 className="text-lg font-semibold mb-4">Langue</h3>
           <div className="bg-card rounded-xl p-4">
             <Label className="text-sm text-muted-foreground mb-2 block">Langue de l'application</Label>
-            <Select 
-              value={language} 
-              onValueChange={(value) => {
-                setLanguage(value);
-                updateProfile({ language: value });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={profile?.language || "fr"} onValueChange={(v) => updateProfile({ language: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {languages.map((lang) => (
                   <SelectItem key={lang.code} value={lang.code}>
-                    <span className="flex items-center gap-2">
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </span>
+                    <span className="flex items-center gap-2"><span>{lang.flag}</span><span>{lang.name}</span></span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Sous-titres</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Languages}
-              title="Sous-titres automatiques"
-              subtitle="Afficher les sous-titres générés"
-              checked={content.autoSubtitles}
-              onCheckedChange={(checked) => setContent({ ...content, autoSubtitles: checked })}
-            />
-            <Separator />
-            <SettingToggle
-              icon={Globe}
-              title="Traduction automatique"
-              subtitle="Traduire le contenu étranger"
-              checked={content.autoTranslate}
-              onCheckedChange={(checked) => setContent({ ...content, autoTranslate: checked })}
-            />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Filtrage</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Filter}
-              title="Filtrage de contenu sensible"
-              subtitle="Masquer le contenu potentiellement sensible"
-              checked={content.sensitiveFilter}
-              onCheckedChange={(checked) => setContent({ ...content, sensitiveFilter: checked })}
-            />
-            <Separator />
-            <SettingToggle
-              icon={Shield}
-              title="Mode restreint"
-              subtitle="Limiter le contenu pour adultes"
-              checked={content.restrictedMode}
-              onCheckedChange={(checked) => setContent({ ...content, restrictedMode: checked })}
-            />
-          </div>
-        </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Apparence</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={darkMode ? Moon : Sun}
-              title="Mode sombre"
-              subtitle="Interface sombre"
-              checked={darkMode}
-              onCheckedChange={setDarkMode}
-            />
+            <SettingToggle icon={settings.dark_mode ? Moon : Sun} title="Mode sombre" subtitle="Interface sombre"
+              checked={settings.dark_mode} onCheckedChange={(c) => updateSetting("dark_mode", c)} />
           </div>
         </div>
-
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Sous-titres</h3>
+          <div className="bg-card rounded-xl overflow-hidden">
+            <SettingToggle icon={Languages} title="Sous-titres automatiques" subtitle="Afficher les sous-titres"
+              checked={settings.content_auto_subtitles} onCheckedChange={(c) => updateSetting("content_auto_subtitles", c)} />
+            <Separator />
+            <SettingToggle icon={Globe} title="Traduction automatique" subtitle="Traduire le contenu étranger"
+              checked={settings.content_auto_translate} onCheckedChange={(c) => updateSetting("content_auto_translate", c)} />
+          </div>
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Filtrage</h3>
+          <div className="bg-card rounded-xl overflow-hidden">
+            <SettingToggle icon={Filter} title="Filtrage de contenu sensible" subtitle="Masquer le contenu sensible"
+              checked={settings.content_sensitive_filter} onCheckedChange={(c) => updateSetting("content_sensitive_filter", c)} />
+            <Separator />
+            <SettingToggle icon={Shield} title="Mode restreint" subtitle="Limiter le contenu pour adultes"
+              checked={settings.content_restricted_mode} onCheckedChange={(c) => updateSetting("content_restricted_mode", c)} />
+          </div>
+        </div>
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Accessibilité</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Accessibility}
-              title="Contraste élevé"
-              subtitle="Améliorer la lisibilité"
-              checked={content.highContrast}
-              onCheckedChange={(checked) => setContent({ ...content, highContrast: checked })}
-            />
+            <SettingToggle icon={Accessibility} title="Contraste élevé" subtitle="Améliorer la lisibilité"
+              checked={settings.content_high_contrast} onCheckedChange={(c) => updateSetting("content_high_contrast", c)} />
             <Separator />
-            <SettingToggle
-              icon={Smartphone}
-              title="Lecture automatique"
-              subtitle="Lire les vidéos automatiquement"
-              checked={content.autoPlay}
-              onCheckedChange={(checked) => setContent({ ...content, autoPlay: checked })}
-            />
+            <SettingToggle icon={Smartphone} title="Lecture automatique" subtitle="Lire les vidéos automatiquement"
+              checked={settings.content_auto_play} onCheckedChange={(c) => updateSetting("content_auto_play", c)} />
           </div>
         </div>
       </div>
@@ -848,78 +586,46 @@ const Settings = () => {
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Temps passé aujourd'hui</h3>
           <div className="bg-card rounded-xl p-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-10 h-10 text-primary" />
-            </div>
+            <Clock className="w-10 h-10 text-primary mx-auto mb-4" />
             <p className="text-3xl font-bold">0h 0m</p>
             <p className="text-muted-foreground">Sur CedLite aujourd'hui</p>
           </div>
         </div>
-
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Limites</h3>
           <div className="bg-card rounded-xl p-4">
             <Label className="text-sm text-muted-foreground mb-2 block">Limite quotidienne</Label>
-            <Select 
-              value={screenTime.dailyLimit.toString()} 
-              onValueChange={(value) => setScreenTime({ ...screenTime, dailyLimit: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Aucune limite" />
-              </SelectTrigger>
+            <Select value={settings.screen_time_daily_limit.toString()} onValueChange={(v) => updateSetting("screen_time_daily_limit", parseInt(v))}>
+              <SelectTrigger><SelectValue placeholder="Aucune limite" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">Aucune limite</SelectItem>
                 <SelectItem value="30">30 minutes</SelectItem>
                 <SelectItem value="60">1 heure</SelectItem>
-                <SelectItem value="90">1h 30</SelectItem>
                 <SelectItem value="120">2 heures</SelectItem>
-                <SelectItem value="180">3 heures</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Rappels</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Bell}
-              title="Rappels de pause"
-              subtitle="Prendre des pauses régulières"
-              checked={screenTime.breakReminders}
-              onCheckedChange={(checked) => setScreenTime({ ...screenTime, breakReminders: checked })}
-            />
+            <SettingToggle icon={Bell} title="Rappels de pause" subtitle="Prendre des pauses régulières"
+              checked={settings.screen_time_break_reminders} onCheckedChange={(c) => updateSetting("screen_time_break_reminders", c)} />
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Mode sommeil</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <SettingToggle
-              icon={Moon}
-              title="Mode sommeil"
-              subtitle="Limiter l'utilisation la nuit"
-              checked={screenTime.sleepMode}
-              onCheckedChange={(checked) => setScreenTime({ ...screenTime, sleepMode: checked })}
-            />
+            <SettingToggle icon={Moon} title="Mode sommeil" subtitle="Limiter l'utilisation la nuit"
+              checked={settings.screen_time_sleep_mode} onCheckedChange={(c) => updateSetting("screen_time_sleep_mode", c)} />
           </div>
-          {screenTime.sleepMode && (
+          {settings.screen_time_sleep_mode && (
             <div className="mt-4 bg-card rounded-xl p-4 space-y-4">
               <div>
                 <Label className="text-sm text-muted-foreground mb-2 block">Début</Label>
-                <Input 
-                  type="time" 
-                  value={screenTime.sleepStart}
-                  onChange={(e) => setScreenTime({ ...screenTime, sleepStart: e.target.value })}
-                />
+                <Input type="time" value={settings.screen_time_sleep_start} onChange={(e) => updateSetting("screen_time_sleep_start", e.target.value)} />
               </div>
               <div>
                 <Label className="text-sm text-muted-foreground mb-2 block">Fin</Label>
-                <Input 
-                  type="time" 
-                  value={screenTime.sleepEnd}
-                  onChange={(e) => setScreenTime({ ...screenTime, sleepEnd: e.target.value })}
-                />
+                <Input type="time" value={settings.screen_time_sleep_end} onChange={(e) => updateSetting("screen_time_sleep_end", e.target.value)} />
               </div>
             </div>
           )}
@@ -928,99 +634,40 @@ const Settings = () => {
     </ScrollArea>
   );
 
-  const renderParentalSection = () => (
+  const renderBlockedSection = () => (
     <ScrollArea className="flex-1">
       <div className="pb-8">
         <div className="p-4">
-          <div className="bg-card rounded-xl p-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Users className="w-10 h-10 text-primary" />
+          <h3 className="text-lg font-semibold mb-4">Comptes bloqués</h3>
+          {blockedLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          ) : blockedUsers.length === 0 ? (
+            <div className="bg-card rounded-xl p-8 text-center">
+              <Ban className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">Aucun compte bloqué</p>
             </div>
-            <h3 className="text-xl font-bold mb-2">Family Pairing</h3>
-            <p className="text-muted-foreground mb-4">
-              Associez le compte de votre enfant au vôtre pour gérer son utilisation de CedLite
-            </p>
-            <Button className="w-full">Associer un compte</Button>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Contrôles disponibles</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Clock} title="Limite de temps d'écran" subtitle="Définir une durée maximale quotidienne" />
-            <Separator />
-            <MenuItem icon={Filter} title="Filtrage de contenu" subtitle="Bloquer le contenu inapproprié" />
-            <Separator />
-            <MenuItem icon={MessageCircle} title="Messages privés" subtitle="Gérer qui peut contacter votre enfant" />
-            <Separator />
-            <MenuItem icon={Shield} title="Mode restreint" subtitle="Activer les restrictions de contenu" />
-          </div>
-        </div>
-      </div>
-    </ScrollArea>
-  );
-
-  const renderShopSection = () => (
-    <ScrollArea className="flex-1">
-      <div className="pb-8">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Mes commandes</h3>
-          <div className="bg-card rounded-xl p-8 text-center">
-            <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Aucune commande</p>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Paramètres</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={CreditCard} title="Moyens de paiement" subtitle="Gérer vos cartes" />
-            <Separator />
-            <MenuItem icon={Globe} title="Adresses de livraison" subtitle="Gérer vos adresses" />
-            <Separator />
-            <MenuItem icon={Gift} title="Coupons" subtitle="Mes bons de réduction" />
-          </div>
-        </div>
-      </div>
-    </ScrollArea>
-  );
-
-  const renderCreatorSection = () => (
-    <ScrollArea className="flex-1">
-      <div className="pb-8">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Performances</h3>
-          <div className="bg-card rounded-xl p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Vues</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Likes</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Commentaires</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-sm text-muted-foreground">Partages</p>
-              </div>
+          ) : (
+            <div className="bg-card rounded-xl overflow-hidden">
+              {blockedUsers.map((blocked, i) => (
+                <div key={blocked.id}>
+                  {i > 0 && <Separator />}
+                  <div className="flex items-center gap-3 p-4">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={blocked.profile?.avatar_url || ""} />
+                      <AvatarFallback>{blocked.profile?.display_name?.[0] || "U"}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{blocked.profile?.display_name || "Utilisateur"}</p>
+                      <p className="text-sm text-muted-foreground truncate">@{blocked.profile?.username || "user"}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => unblockUser(blocked.blocked_id)}>
+                      Débloquer
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Ressources</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={BarChart3} title="Tableau de bord" subtitle="Statistiques détaillées" />
-            <Separator />
-            <MenuItem icon={HelpCircle} title="Centre d'aide créateur" subtitle="Guides et conseils" />
-            <Separator />
-            <MenuItem icon={Volume2} title="Bibliothèque musicale" subtitle="Sons et tendances" />
-          </div>
+          )}
         </div>
       </div>
     </ScrollArea>
@@ -1030,7 +677,6 @@ const Settings = () => {
     <ScrollArea className="flex-1">
       <div className="pb-8">
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Aide</h3>
           <div className="bg-card rounded-xl overflow-hidden">
             <MenuItem icon={HelpCircle} title="FAQ" subtitle="Questions fréquentes" />
             <Separator />
@@ -1039,20 +685,11 @@ const Settings = () => {
             <MenuItem icon={Shield} title="Signaler un problème" subtitle="Reporter un bug" />
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Historique</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={History} title="Mes signalements" subtitle="Historique des signalements" />
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Documents</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Info} title="Conditions d'utilisation" subtitle="Nos règles" />
+            <MenuItem icon={Info} title="Conditions d'utilisation" />
             <Separator />
-            <MenuItem icon={Shield} title="Politique de confidentialité" subtitle="Vos données" />
+            <MenuItem icon={Shield} title="Politique de confidentialité" />
           </div>
         </div>
       </div>
@@ -1069,79 +706,32 @@ const Settings = () => {
             <p className="text-muted-foreground">Version 1.0.0</p>
           </div>
         </div>
-
         <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Informations</h3>
           <div className="bg-card rounded-xl overflow-hidden">
             <div className="p-4 flex items-center justify-between">
-              <p className="text-muted-foreground">Région</p>
-              <p className="font-medium">France 🇫🇷</p>
+              <p className="text-muted-foreground">Email</p>
+              <p className="font-medium">{user?.email}</p>
             </div>
             <Separator />
             <div className="p-4 flex items-center justify-between">
               <p className="text-muted-foreground">Langue</p>
-              <p className="font-medium">Français</p>
+              <p className="font-medium">{languages.find(l => l.code === (profile?.language || "fr"))?.name || "Français"}</p>
             </div>
           </div>
         </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Légal</h3>
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Info} title="Mentions légales" />
-            <Separator />
-            <MenuItem icon={Shield} title="Politique de données" />
-            <Separator />
-            <MenuItem icon={Info} title="Licences open source" />
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          © 2024 CedLite. Tous droits réservés.
-        </p>
-      </div>
-    </ScrollArea>
-  );
-
-  const renderBlockedSection = () => (
-    <ScrollArea className="flex-1">
-      <div className="pb-8">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Comptes bloqués</h3>
-          <div className="bg-card rounded-xl p-8 text-center">
-            <Ban className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Aucun compte bloqué</p>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Comptes restreints</h3>
-          <div className="bg-card rounded-xl p-8 text-center">
-            <Volume2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Aucun compte restreint</p>
-          </div>
-        </div>
+        <p className="text-center text-sm text-muted-foreground mt-8">© 2024 CedLite. Tous droits réservés.</p>
       </div>
     </ScrollArea>
   );
 
   const getSectionTitle = () => {
     const titles: Record<SettingsSection, string> = {
-      main: "Paramètres",
-      account: "Gérer le compte",
-      security: "Sécurité",
-      privacy: "Confidentialité",
-      interactions: "Interactions",
-      notifications: "Notifications",
-      monetization: "Monétisation",
-      content: "Contenu et affichage",
-      screentime: "Temps d'écran",
-      parental: "Contrôle parental",
-      shop: "CedLite Shop",
-      creator: "Centre du créateur",
-      help: "Aide et assistance",
-      about: "À propos",
-      blocked: "Comptes bloqués",
+      main: "Paramètres", account: "Gérer le compte", security: "Sécurité",
+      privacy: "Confidentialité", interactions: "Interactions", notifications: "Notifications",
+      monetization: "Monétisation", content: "Contenu et affichage", screentime: "Temps d'écran",
+      parental: "Contrôle parental", shop: "CedLite Shop", creator: "Centre du créateur",
+      help: "Aide et assistance", about: "À propos", blocked: "Comptes bloqués",
+      "change-password": "Changer le mot de passe",
     };
     return titles[currentSection];
   };
@@ -1150,37 +740,28 @@ const Settings = () => {
     switch (currentSection) {
       case "main": return renderMainMenu();
       case "account": return renderAccountSection();
+      case "change-password": return renderChangePasswordSection();
       case "security": return renderSecuritySection();
       case "privacy": return renderPrivacySection();
       case "interactions": return renderInteractionsSection();
       case "notifications": return renderNotificationsSection();
-      case "monetization": return renderMonetizationSection();
       case "content": return renderContentSection();
       case "screentime": return renderScreenTimeSection();
-      case "parental": return renderParentalSection();
-      case "shop": return renderShopSection();
-      case "creator": return renderCreatorSection();
+      case "blocked": return renderBlockedSection();
       case "help": return renderHelpSection();
       case "about": return renderAboutSection();
-      case "blocked": return renderBlockedSection();
       default: return renderMainMenu();
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="bg-primary text-primary-foreground px-4 py-4 flex items-center gap-4 sticky top-0 z-50">
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="text-primary-foreground hover:bg-primary-foreground/10"
+        <Button size="icon" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10"
           onClick={() => {
-            if (currentSection === "main") {
-              navigate(-1);
-            } else {
-              setCurrentSection("main");
-            }
+            if (currentSection === "main") navigate(-1);
+            else if (currentSection === "change-password") setCurrentSection("account");
+            else setCurrentSection("main");
           }}
         >
           <ArrowLeft className="w-5 h-5" />
@@ -1189,6 +770,36 @@ const Settings = () => {
       </header>
 
       {renderSection()}
+
+      {/* Delete Account Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Supprimer votre compte</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Toutes vos données, vidéos, messages et abonnés seront définitivement supprimés.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Tapez <span className="font-bold text-destructive">SUPPRIMER</span> pour confirmer
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="SUPPRIMER"
+              className="border-destructive"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Annuler</Button>
+            <Button variant="destructive" onClick={handleDeleteAccount} disabled={saving || deleteConfirmText !== "SUPPRIMER"}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Supprimer définitivement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

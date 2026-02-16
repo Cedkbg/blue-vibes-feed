@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       call_history: {
         Row: {
           call_type: string
@@ -1098,6 +1119,114 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          content_auto_play: boolean | null
+          content_auto_subtitles: boolean | null
+          content_auto_translate: boolean | null
+          content_high_contrast: boolean | null
+          content_restricted_mode: boolean | null
+          content_sensitive_filter: boolean | null
+          created_at: string
+          dark_mode: boolean | null
+          id: string
+          notifications_comments: boolean | null
+          notifications_followers: boolean | null
+          notifications_likes: boolean | null
+          notifications_lives: boolean | null
+          notifications_messages: boolean | null
+          notifications_promotions: boolean | null
+          notifications_push: boolean | null
+          notifications_recommendations: boolean | null
+          privacy_allow_comments: string | null
+          privacy_allow_downloads: boolean | null
+          privacy_allow_duets: string | null
+          privacy_allow_mentions: string | null
+          privacy_allow_messages: string | null
+          privacy_allow_suggestions: boolean | null
+          privacy_auto_share: boolean | null
+          privacy_show_following: boolean | null
+          privacy_sync_contacts: boolean | null
+          screen_time_break_reminders: boolean | null
+          screen_time_daily_limit: number | null
+          screen_time_sleep_end: string | null
+          screen_time_sleep_mode: boolean | null
+          screen_time_sleep_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_auto_play?: boolean | null
+          content_auto_subtitles?: boolean | null
+          content_auto_translate?: boolean | null
+          content_high_contrast?: boolean | null
+          content_restricted_mode?: boolean | null
+          content_sensitive_filter?: boolean | null
+          created_at?: string
+          dark_mode?: boolean | null
+          id?: string
+          notifications_comments?: boolean | null
+          notifications_followers?: boolean | null
+          notifications_likes?: boolean | null
+          notifications_lives?: boolean | null
+          notifications_messages?: boolean | null
+          notifications_promotions?: boolean | null
+          notifications_push?: boolean | null
+          notifications_recommendations?: boolean | null
+          privacy_allow_comments?: string | null
+          privacy_allow_downloads?: boolean | null
+          privacy_allow_duets?: string | null
+          privacy_allow_mentions?: string | null
+          privacy_allow_messages?: string | null
+          privacy_allow_suggestions?: boolean | null
+          privacy_auto_share?: boolean | null
+          privacy_show_following?: boolean | null
+          privacy_sync_contacts?: boolean | null
+          screen_time_break_reminders?: boolean | null
+          screen_time_daily_limit?: number | null
+          screen_time_sleep_end?: string | null
+          screen_time_sleep_mode?: boolean | null
+          screen_time_sleep_start?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_auto_play?: boolean | null
+          content_auto_subtitles?: boolean | null
+          content_auto_translate?: boolean | null
+          content_high_contrast?: boolean | null
+          content_restricted_mode?: boolean | null
+          content_sensitive_filter?: boolean | null
+          created_at?: string
+          dark_mode?: boolean | null
+          id?: string
+          notifications_comments?: boolean | null
+          notifications_followers?: boolean | null
+          notifications_likes?: boolean | null
+          notifications_lives?: boolean | null
+          notifications_messages?: boolean | null
+          notifications_promotions?: boolean | null
+          notifications_push?: boolean | null
+          notifications_recommendations?: boolean | null
+          privacy_allow_comments?: string | null
+          privacy_allow_downloads?: boolean | null
+          privacy_allow_duets?: string | null
+          privacy_allow_mentions?: string | null
+          privacy_allow_messages?: string | null
+          privacy_allow_suggestions?: boolean | null
+          privacy_auto_share?: boolean | null
+          privacy_show_following?: boolean | null
+          privacy_sync_contacts?: boolean | null
+          screen_time_break_reminders?: boolean | null
+          screen_time_daily_limit?: number | null
+          screen_time_sleep_end?: string | null
+          screen_time_sleep_mode?: boolean | null
+          screen_time_sleep_start?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
