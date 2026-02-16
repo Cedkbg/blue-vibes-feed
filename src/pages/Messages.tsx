@@ -84,7 +84,7 @@ const Messages = () => {
 
         const { data: lastMsg } = await supabase
           .from("messages")
-          .select("content")
+          .select("content, media_type")
           .or(
             `and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`
           )
@@ -102,7 +102,7 @@ const Messages = () => {
         return {
           ...conv,
           other_user: profilesMap.get(otherId),
-          last_message: lastMsg?.content,
+          last_message: lastMsg?.media_type === "audio" ? "🎤 Message vocal" : lastMsg?.media_type === "image" ? "📷 Photo" : lastMsg?.media_type === "video" ? "🎬 Vidéo" : lastMsg?.media_type === "file" ? "📎 Fichier" : lastMsg?.content,
           unread_count: count || 0,
         };
       })
