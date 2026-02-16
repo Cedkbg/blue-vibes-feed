@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedCard } from "@/components/FeedCard";
-import { BottomNav } from "@/components/BottomNav";
-import { TopBar } from "@/components/TopBar";
 import { StartLiveModal } from "@/components/StartLiveModal";
+import { DesktopLayout } from "@/components/DesktopLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Post {
   id: string;
@@ -37,17 +37,15 @@ interface PostWithProfile extends Post {
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showStartLive, setShowStartLive] = useState(false);
 
-  // Track user presence (online status)
   usePresence(user?.id);
 
   const fetchPosts = async () => {
     setIsLoading(true);
-    
-    // Only fetch personal posts (no channel, group, or community posts)
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("*")
@@ -62,54 +60,27 @@ const Index = () => {
       return;
     }
 
-    // Get unique user IDs
     const userIds = [...new Set(postsData.map((p) => p.user_id))];
-
-    // Fetch profiles
     const { data: profilesData } = await supabase
       .from("profiles")
       .select("id, display_name, username, avatar_url, birthdate, profession, location")
       .in("id", userIds);
 
     const profilesMap = new Map<string, Profile>();
-    profilesData?.forEach((p) => {
-      profilesMap.set(p.id, p);
-    });
+    profilesData?.forEach((p) => { profilesMap.set(p.id, p); });
 
-    // Combine posts with profiles
-    const postsWithProfiles: PostWithProfile[] = postsData.map((post) => ({
-      ...post,
-      profile: profilesMap.get(post.user_id),
-    }));
-
-    setPosts(postsWithProfiles);
+    setPosts(postsData.map((post) => ({ ...post, profile: profilesMap.get(post.user_id) })));
     setIsLoading(false);
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  useEffect(() => { fetchPosts(); }, []);
 
   useEffect(() => {
-    // Subscribe to real-time updates
     const channel = supabase
       .channel("posts-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "posts",
-        },
-        () => {
-          fetchPosts();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPosts())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const calculateAge = (birthdate: string | null) => {
@@ -118,29 +89,21 @@ const Index = () => {
     const birth = new Date(birthdate);
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
     return age;
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
-      <TopBar />
-
-      <main className="max-w-lg mx-auto px-4 py-4">
+    <DesktopLayout showStories showRightSidebar>
+      <main className="px-4 py-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground mb-4">
-              Aucun post pour le moment
-            </p>
-            <Button onClick={() => navigate("/create-post")}>
-              Créer le premier post
-            </Button>
+            <p className="text-muted-foreground mb-4">Aucun post pour le moment</p>
+            <Button onClick={() => navigate("/create-post")}>Créer le premier post</Button>
           </div>
         ) : (
           posts.map((post) => (
@@ -166,35 +129,35 @@ const Index = () => {
         )}
       </main>
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-24 right-4 flex flex-col gap-3 z-50">
-        {user && (
+      {/* Floating action buttons - mobile only */}
+      {isMobile && (
+        <div className="fixed bottom-24 right-4 flex flex-col gap-3 z-50">
+          {user && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="w-14 h-14 rounded-full shadow-lg bg-card border-primary/20 hover:bg-primary hover:text-primary-foreground"
+              onClick={() => setShowStartLive(true)}
+            >
+              <Radio className="w-6 h-6" />
+            </Button>
+          )}
           <Button
             size="icon"
-            variant="outline"
-            className="w-14 h-14 rounded-full shadow-lg bg-card border-primary/20 hover:bg-primary hover:text-primary-foreground"
-            onClick={() => setShowStartLive(true)}
+            className="w-14 h-14 rounded-full shadow-lg gradient-primary"
+            onClick={() => navigate("/create-post")}
           >
-            <Radio className="w-6 h-6" />
+            <Plus className="w-6 h-6" />
           </Button>
-        )}
-        <Button
-          size="icon"
-          className="w-14 h-14 rounded-full shadow-lg gradient-primary"
-          onClick={() => navigate("/create-post")}
-        >
-          <Plus className="w-6 h-6" />
-        </Button>
-      </div>
+        </div>
+      )}
 
-      <StartLiveModal 
-        open={showStartLive} 
+      <StartLiveModal
+        open={showStartLive}
         onOpenChange={setShowStartLive}
         onStreamStarted={(id) => navigate(`/live/${id}`)}
       />
-
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 };
 

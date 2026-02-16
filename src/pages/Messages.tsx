@@ -4,7 +4,7 @@ import { Search, MoreVertical, Plus, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { BottomNav } from "@/components/BottomNav";
+import { DesktopLayout } from "@/components/DesktopLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -211,7 +211,7 @@ const Messages = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <DesktopLayout showRightSidebar={false} title="Messages">
       {/* Header */}
       <header className="bg-primary text-primary-foreground px-6 py-4">
         <div className="flex items-center justify-between mb-4">
@@ -436,8 +436,7 @@ const Messages = () => {
         </TabsContent>
       </Tabs>
 
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 };
 
