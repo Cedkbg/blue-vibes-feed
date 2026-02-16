@@ -11,7 +11,7 @@ import { SuggestedAccounts } from "@/components/SuggestedAccounts";
 import { HashtagText } from "@/components/HashtagText";
 import {
   Clapperboard, Trophy, Swords, Gamepad2, Coffee, Laugh, Shirt, Newspaper,
-  ArrowLeft, Heart, MessageCircle, Play, TrendingUp, Search, X
+  ArrowLeft, Heart, MessageCircle, Play, TrendingUp, Search, X, Megaphone
 } from "lucide-react";
 
 interface Post {
@@ -251,6 +251,24 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
           </Card>
         ))}
       </div>
+
+      {/* Pubb Banner */}
+      <Card
+        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
+        onClick={() => { onNavigate(); navigate("/pubb"); }}
+      >
+        <CardContent className="p-0">
+          <div className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 p-4 flex items-center gap-3">
+            <div className="bg-white/20 rounded-full p-2">
+              <Megaphone className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-white text-sm">Pubb</h3>
+              <p className="text-white/80 text-[10px]">Publicités & Promotions</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <SuggestedAccounts onNavigate={onNavigate} />
     </div>

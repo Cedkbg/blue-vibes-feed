@@ -1400,6 +1400,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ad_clicks: { Args: { ad_id: string }; Returns: undefined }
+      increment_ad_views: { Args: { ad_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
