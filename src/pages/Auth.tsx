@@ -233,7 +233,37 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+      {/* Welcome Message */}
+      <div className="w-full max-w-md mb-6 text-center space-y-3">
+        <h2 className="text-2xl font-bold text-foreground">Bienvenue sur CedLite 🎉</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          Rejoignez la communauté où chaque voix compte. Sur CedLite, partagez vos talents, 
+          découvrez du contenu authentique et connectez-vous avec des créateurs du monde entier.
+        </p>
+        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
+            <span>🎬</span>
+            <span>Créez et partagez des vidéos</span>
+          </div>
+          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
+            <span>🔴</span>
+            <span>Passez en live</span>
+          </div>
+          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
+            <span>💬</span>
+            <span>Messagerie instantanée</span>
+          </div>
+          <div className="flex items-center gap-2 bg-card rounded-lg p-2">
+            <span>🌍</span>
+            <span>Communauté mondiale</span>
+          </div>
+        </div>
+        <p className="text-xs text-primary font-medium">
+          100% gratuit • Respect de la vie privée • Contenu de qualité
+        </p>
+      </div>
+
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="mx-auto">
