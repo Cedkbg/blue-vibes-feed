@@ -1287,7 +1287,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          external_link: string | null
+          id: string | null
+          is_online: boolean | null
+          is_private: boolean | null
+          is_verified: boolean | null
+          language: string | null
+          last_seen: string | null
+          location: string | null
+          profession: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          external_link?: string | null
+          id?: string | null
+          is_online?: boolean | null
+          is_private?: boolean | null
+          is_verified?: boolean | null
+          language?: string | null
+          last_seen?: string | null
+          location?: string | null
+          profession?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          external_link?: string | null
+          id?: string | null
+          is_online?: boolean | null
+          is_private?: boolean | null
+          is_verified?: boolean | null
+          language?: string | null
+          last_seen?: string | null
+          location?: string | null
+          profession?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_expired_call_signals: { Args: never; Returns: undefined }
