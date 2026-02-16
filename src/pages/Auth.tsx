@@ -133,10 +133,10 @@ const Auth = () => {
         }
 
         toast({
-          title: "Inscription réussie !",
-          description: "Bienvenue sur CedLite.",
+          title: "Vérifiez votre email 📧",
+          description: "Un lien de confirmation a été envoyé à votre adresse email. Cliquez dessus pour activer votre compte.",
         });
-        navigate("/");
+        // Don't navigate - user must confirm email first
       }
     } catch (error: any) {
       toast({
