@@ -415,10 +415,10 @@ export const CommentsButton = ({ count, onClick, variant = "inline" }: CommentsB
         onClick={onClick}
         className="flex flex-col items-center gap-1 transition-transform active:scale-90"
       >
-        <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md shadow-md border border-white/10 flex items-center justify-center">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
-        <span className="text-white text-xs font-semibold drop-shadow">
+        <span className="text-white text-xs font-semibold drop-shadow-md">
           {formatCount(currentCount)}
         </span>
       </button>

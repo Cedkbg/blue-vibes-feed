@@ -267,10 +267,10 @@ export const FeedCard = ({
             </div>
 
             {/* Action Buttons - Right Side */}
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-5">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-4">
               {/* Avatar */}
               <button onClick={handleProfileClick} className="transition-transform active:scale-90">
-                <Avatar className="w-11 h-11 ring-2 ring-white/50">
+                <Avatar className="w-10 h-10 ring-2 ring-white/60 shadow-md">
                   <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback>{user.name[0]}</AvatarFallback>
                 </Avatar>
@@ -283,8 +283,8 @@ export const FeedCard = ({
                 className="flex flex-col items-center gap-1 transition-transform active:scale-90 disabled:opacity-50"
               >
                 <div className={cn(
-                  "w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors",
-                  isLiked ? "bg-primary" : "bg-white/20"
+                  "w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md shadow-md border border-white/10 transition-colors",
+                  isLiked ? "bg-primary" : "bg-black/30"
                 )}>
                   <Heart 
                     className={cn(
@@ -293,7 +293,7 @@ export const FeedCard = ({
                     )}
                   />
                 </div>
-                <span className="text-white text-xs font-semibold drop-shadow">
+                <span className="text-white text-xs font-semibold drop-shadow-md">
                   {formatCount(likesCount)}
                 </span>
               </button>
@@ -310,7 +310,7 @@ export const FeedCard = ({
                 onClick={() => setIsShareOpen(true)}
                 className="flex flex-col items-center gap-1 transition-transform active:scale-90"
               >
-                <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md shadow-md border border-white/10 flex items-center justify-center hover:bg-black/40 transition-colors">
                   <Share2 className="w-5 h-5 text-white" />
                 </div>
               </button>
@@ -319,7 +319,7 @@ export const FeedCard = ({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="transition-transform active:scale-90">
-                    <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md shadow-md border border-white/10 flex items-center justify-center hover:bg-black/40 transition-colors">
                       <MoreHorizontal className="w-5 h-5 text-white" />
                     </div>
                   </button>
