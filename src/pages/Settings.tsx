@@ -55,6 +55,9 @@ const Settings = () => {
   // Delete account dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [helpSection, setHelpSection] = useState<"main" | "faq">("main");
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -276,21 +279,78 @@ const Settings = () => {
     </ScrollArea>
   );
 
+
+
+
+  const startEditing = (field: string, currentValue: string) => {
+    setEditingField(field);
+    setEditValue(currentValue || "");
+  };
+
+  const saveField = async (field: string) => {
+    if (!editValue.trim()) {
+      toast.error("Ce champ ne peut pas être vide");
+      return;
+    }
+    if (field === "username" && editValue.trim().length < 3) {
+      toast.error("Le pseudo doit contenir au moins 3 caractères");
+      return;
+    }
+    if (field === "username" && !/^[a-zA-Z0-9_]+$/.test(editValue.trim())) {
+      toast.error("Seuls les lettres, chiffres et underscores sont autorisés");
+      return;
+    }
+    await updateProfile({ [field]: editValue.trim() });
+    setEditingField(null);
+    setEditValue("");
+  };
+
+  const renderEditableField = (icon: any, label: string, field: string, value: string | null | undefined, placeholder: string) => {
+    const Icon = icon;
+    const isEditing = editingField === field;
+    return (
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5 text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground">{label}</p>
+            {isEditing ? (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  placeholder={placeholder}
+                  className="h-8 text-sm"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter") saveField(field); if (e.key === "Escape") setEditingField(null); }}
+                />
+                <Button size="sm" variant="ghost" className="h-8 px-2 text-green-600" onClick={() => saveField(field)} disabled={saving}>
+                  <Check className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <p className="font-medium">{value || "Non défini"}</p>
+            )}
+          </div>
+          {!isEditing && (
+            <Button size="sm" variant="ghost" className="text-primary h-8 px-2" onClick={() => startEditing(field, value || "")}>
+              Modifier
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderAccountSection = () => (
     <ScrollArea className="flex-1">
       <div className="pb-8">
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-4">Informations personnelles</h3>
           <div className="bg-card rounded-xl overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Nom</p>
-                  <p className="font-medium">{profile?.display_name || "Non défini"}</p>
-                </div>
-              </div>
-            </div>
+            {renderEditableField(User, "Nom d'affichage", "display_name", profile?.display_name, "Votre nom")}
+            <Separator />
+            {renderEditableField(AtSign, "Pseudo", "username", profile?.username, "votre_pseudo")}
             <Separator />
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -302,15 +362,7 @@ const Settings = () => {
               </div>
             </div>
             <Separator />
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Téléphone</p>
-                  <p className="font-medium">{profile?.phone_number || "Non défini"}</p>
-                </div>
-              </div>
-            </div>
+            {renderEditableField(Phone, "Téléphone", "phone_number", profile?.phone_number, "+33 6 00 00 00 00")}
             <Separator />
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -689,28 +741,133 @@ const Settings = () => {
     </ScrollArea>
   );
 
-  const renderHelpSection = () => (
-    <ScrollArea className="flex-1">
-      <div className="pb-8">
-        <div className="p-4">
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={HelpCircle} title="FAQ" subtitle="Questions fréquentes" />
-            <Separator />
-            <MenuItem icon={MessageCircle} title="Contacter le support" subtitle="Obtenir de l'aide" />
-            <Separator />
-            <MenuItem icon={Shield} title="Signaler un problème" subtitle="Reporter un bug" />
+
+
+
+  const faqItems = [
+    { q: "Comment créer un compte CedLite ?", a: "Téléchargez l'application ou rendez-vous sur le site, cliquez sur \"S'inscrire\", entrez votre email et créez un mot de passe. Vérifiez votre email pour activer votre compte." },
+    { q: "Comment modifier mon profil ?", a: "Allez sur votre profil, appuyez sur \"Modifier le profil\". Vous pouvez changer votre photo, nom d'affichage, pseudo, bio et lien externe." },
+    { q: "Comment rendre mon compte privé ?", a: "Allez dans Paramètres > Confidentialité > Visibilité du compte, puis activez le mode privé. Seuls vos abonnés approuvés verront vos contenus." },
+    { q: "Comment bloquer un utilisateur ?", a: "Rendez-vous sur le profil de l'utilisateur, appuyez sur les trois points (⋯) puis sélectionnez \"Bloquer\". L'utilisateur ne pourra plus voir vos contenus ni vous contacter." },
+    { q: "Comment signaler un contenu inapproprié ?", a: "Appuyez sur les trois points (⋯) sur le contenu concerné, puis sélectionnez \"Signaler\". Choisissez la raison du signalement. Notre équipe examinera le contenu sous 24h." },
+    { q: "Comment supprimer mon compte ?", a: "Allez dans Paramètres > Gérer le compte > Zone de danger > Supprimer le compte. Tapez SUPPRIMER pour confirmer. Cette action est irréversible." },
+    { q: "Comment changer mon mot de passe ?", a: "Allez dans Paramètres > Gérer le compte > Sécurité du compte > Changer le mot de passe. Entrez votre nouveau mot de passe (minimum 6 caractères) et confirmez." },
+    { q: "Mes données sont-elles sécurisées ?", a: "Oui. CedLite utilise le chiffrement de bout en bout pour les messages privés, et vos données personnelles (téléphone, date de naissance) ne sont jamais visibles publiquement." },
+  ];
+
+  const renderHelpSection = () => {
+    if (helpSection === "faq") {
+      return (
+        <ScrollArea className="flex-1">
+          <div className="pb-8">
+            <div className="p-4">
+              <Button variant="ghost" size="sm" className="mb-4 gap-2" onClick={() => setHelpSection("main")}>
+                <ArrowLeft className="w-4 h-4" /> Retour
+              </Button>
+              <h3 className="text-lg font-semibold mb-4">Questions fréquentes</h3>
+              <div className="space-y-3">
+                {faqItems.map((item, i) => (
+                  <details key={i} className="bg-card rounded-xl overflow-hidden group">
+                    <summary className="p-4 font-medium cursor-pointer flex items-center gap-3 hover:bg-muted/50 transition-colors">
+                      <HelpCircle className="w-4 h-4 text-primary shrink-0" />
+                      <span className="flex-1">{item.q}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-90" />
+                    </summary>
+                    <div className="px-4 pb-4 pl-11 text-sm text-muted-foreground leading-relaxed">
+                      {item.a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      );
+    }
+
+    return (
+      <ScrollArea className="flex-1">
+        <div className="pb-8">
+          {/* Centre d'aide */}
+          <div className="p-4">
+            <div className="bg-primary/5 rounded-xl p-6 text-center mb-4">
+              <img src={cedliteLogo} alt="CedLite" className="w-14 h-14 mx-auto mb-3" />
+              <h3 className="text-lg font-bold mb-1">Centre d'aide CedLite</h3>
+              <p className="text-sm text-muted-foreground">Comment pouvons-nous vous aider ?</p>
+            </div>
+          </div>
+
+          <div className="p-4 pt-0">
+            <div className="bg-card rounded-xl overflow-hidden">
+              <MenuItem icon={HelpCircle} title="FAQ" subtitle="Réponses aux questions fréquentes" onClick={() => setHelpSection("faq")} />
+              <Separator />
+              <MenuItem icon={MessageCircle} title="Contacter le support" subtitle="support@cedlite.com" onClick={() => { window.location.href = "mailto:support@cedlite.com?subject=Demande%20d'aide%20-%20CedLite"; }} />
+              <Separator />
+              <MenuItem icon={Shield} title="Signaler un problème" subtitle="Signaler un bug ou un contenu" onClick={() => { window.location.href = "mailto:report@cedlite.com?subject=Signalement%20-%20CedLite"; }} />
+            </div>
+          </div>
+
+          <div className="p-4 pt-0">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Règles de la communauté</h3>
+            <div className="bg-card rounded-xl overflow-hidden">
+              <div className="p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Heart className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Respect mutuel</p>
+                    <p className="text-xs text-muted-foreground">Le harcèlement, les discours haineux et l'intimidation sont strictement interdits.</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Sécurité des mineurs</p>
+                    <p className="text-xs text-muted-foreground">CedLite est réservé aux utilisateurs de 13 ans et plus. La protection des mineurs est notre priorité.</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-start gap-3">
+                  <Ban className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Contenu interdit</p>
+                    <p className="text-xs text-muted-foreground">Pas de contenu violent, sexuellement explicite, frauduleux ou portant atteinte aux droits d'autrui.</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-start gap-3">
+                  <Lock className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Vie privée</p>
+                    <p className="text-xs text-muted-foreground">Ne partagez jamais les informations personnelles d'autres utilisateurs sans leur consentement.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 pt-0">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Informations légales</h3>
+            <div className="bg-card rounded-xl overflow-hidden">
+              <MenuItem icon={Info} title="Conditions d'utilisation" subtitle="Dernière mise à jour : Février 2026" onClick={() => toast.info("Les conditions d'utilisation seront disponibles prochainement sur cedlite.com")} />
+              <Separator />
+              <MenuItem icon={Shield} title="Politique de confidentialité" subtitle="Protection de vos données" onClick={() => toast.info("La politique de confidentialité sera disponible prochainement sur cedlite.com")} />
+              <Separator />
+              <MenuItem icon={Info} title="Licences open source" subtitle="Bibliothèques utilisées" onClick={() => toast.info("CedLite utilise React, Supabase et d'autres technologies open source.")} />
+            </div>
+          </div>
+
+          <div className="p-4 pt-0">
+            <div className="bg-card rounded-xl p-4 text-center">
+              <p className="text-sm text-muted-foreground">CedLite v1.0.0</p>
+              <p className="text-xs text-muted-foreground mt-1">© 2026 CedLite. Tous droits réservés.</p>
+              <p className="text-xs text-muted-foreground mt-1">Fait avec ❤️ pour la communauté</p>
+            </div>
           </div>
         </div>
-        <div className="p-4">
-          <div className="bg-card rounded-xl overflow-hidden">
-            <MenuItem icon={Info} title="Conditions d'utilisation" />
-            <Separator />
-            <MenuItem icon={Shield} title="Politique de confidentialité" />
-          </div>
-        </div>
-      </div>
-    </ScrollArea>
-  );
+      </ScrollArea>
+    );
+  };
 
   const renderAboutSection = () => (
     <ScrollArea className="flex-1">
@@ -775,9 +932,10 @@ const Settings = () => {
       <header className="bg-primary text-primary-foreground px-4 py-4 flex items-center gap-4 sticky top-0 z-50">
         <Button size="icon" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10"
           onClick={() => {
+            if (currentSection === "help" && helpSection === "faq") { setHelpSection("main"); return; }
             if (currentSection === "main") navigate(-1);
             else if (currentSection === "change-password") setCurrentSection("account");
-            else setCurrentSection("main");
+            else { setCurrentSection("main"); setEditingField(null); setHelpSection("main"); }
           }}
         >
           <ArrowLeft className="w-5 h-5" />
