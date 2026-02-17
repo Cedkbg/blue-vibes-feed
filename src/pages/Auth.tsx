@@ -13,7 +13,7 @@ import { z } from "zod";
 import OnboardingWelcome from "@/components/OnboardingWelcome";
 import OnboardingFeatures from "@/components/OnboardingFeatures";
 import PasswordInput from "@/components/PasswordInput";
-import OTPVerification from "@/components/OTPVerification";
+
 
 const emailSchema = z.string().email("Email invalide");
 const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
@@ -36,7 +36,6 @@ const Auth = () => {
   const [profession, setProfession] = useState("");
   const [location, setLocation] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; confirmPassword?: string }>({});
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -139,10 +138,10 @@ const Auth = () => {
         }
 
         toast({
-          title: "Code envoyé 📧",
-          description: "Un code de vérification a été envoyé à votre adresse email.",
+          title: "Inscription réussie ✅",
+          description: "Votre compte a été créé avec succès. Vous êtes maintenant connecté !",
         });
-        setPendingVerificationEmail(email);
+        navigate("/");
       }
     } catch (error: any) {
       toast({
@@ -248,16 +247,6 @@ const Auth = () => {
 
   if (onboardingStep === 1) {
     return <OnboardingFeatures onBack={() => setOnboardingStep(0)} onNext={() => { sessionStorage.setItem("cedlite_onboarded", "true"); setOnboardingStep(null); }} />;
-  }
-
-  if (pendingVerificationEmail) {
-    return (
-      <OTPVerification
-        email={pendingVerificationEmail}
-        onVerified={() => navigate("/")}
-        onBack={() => setPendingVerificationEmail(null)}
-      />
-    );
   }
 
   return (
