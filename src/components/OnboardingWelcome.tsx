@@ -61,7 +61,7 @@ const OnboardingWelcome = ({ onNext }: OnboardingWelcomeProps) => {
         <Button size="lg" className="px-10 text-lg font-semibold" onClick={onNext}>
           Suivant
         </Button>
-        <OnboardingDots total={4} current={0} />
+        <OnboardingDots total={8} current={0} />
       </motion.div>
     </div>
   );

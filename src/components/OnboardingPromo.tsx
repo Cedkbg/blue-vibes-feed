@@ -90,7 +90,7 @@ const OnboardingPromo = ({ onNext, onBack }: OnboardingPromoProps) => {
             Je m'inscris !
           </Button>
         </div>
-        <OnboardingDots total={4} current={2} />
+        <OnboardingDots total={8} current={2} />
       </div>
     </div>
   );

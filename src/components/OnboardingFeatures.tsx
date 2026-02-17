@@ -70,7 +70,7 @@ const OnboardingFeatures = ({ onNext, onBack }: OnboardingFeaturesProps) => {
             C'est parti !
           </Button>
         </div>
-        <OnboardingDots total={4} current={1} />
+        <OnboardingDots total={8} current={1} />
       </div>
     </div>
   );
