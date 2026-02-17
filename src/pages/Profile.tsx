@@ -194,7 +194,7 @@ const Profile = () => {
   }
 
   return (
-    <DesktopLayout showRightSidebar={false}>
+    <DesktopLayout showRightSidebar={false} showTopBar={false}>
       {/* Header */}
       <header className="bg-primary text-primary-foreground px-4 py-4 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-2">

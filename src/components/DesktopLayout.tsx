@@ -10,16 +10,17 @@ interface DesktopLayoutProps {
   children: React.ReactNode;
   showRightSidebar?: boolean;
   showStories?: boolean;
+  showTopBar?: boolean;
   title?: string;
 }
 
-export const DesktopLayout = ({ children, showRightSidebar = true, showStories = false, title }: DesktopLayoutProps) => {
+export const DesktopLayout = ({ children, showRightSidebar = true, showStories = false, showTopBar = true, title }: DesktopLayoutProps) => {
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-background pb-20 pt-16">
-        <TopBar title={title} />
+      <div className={`min-h-screen bg-background pb-20 ${showTopBar ? 'pt-16' : ''}`}>
+        {showTopBar && <TopBar title={title} />}
         {showStories && (
           <div className="pt-2">
             <StoriesCarousel />
