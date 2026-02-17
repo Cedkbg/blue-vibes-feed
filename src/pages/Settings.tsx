@@ -60,6 +60,9 @@ const Settings = () => {
   const [helpSection, setHelpSection] = useState<"main" | "faq">("main");
   const [isVerified, setIsVerified] = useState(false);
   const [totalVerified, setTotalVerified] = useState(0);
+  const [certRequest, setCertRequest] = useState<{ status: string } | null>(null);
+  const [certReason, setCertReason] = useState("");
+  const [submittingCert, setSubmittingCert] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -100,6 +103,41 @@ const Settings = () => {
     };
     fetchVerifiedCount();
   }, []);
+
+  // Fetch existing certification request
+  useEffect(() => {
+    if (!user) return;
+    const fetchCertRequest = async () => {
+      const { data } = await (supabase as any)
+        .from("certification_requests")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) setCertRequest(data);
+    };
+    fetchCertRequest();
+  }, [user]);
+
+  const handleSubmitCertRequest = async () => {
+    if (!user || !certReason.trim()) {
+      toast.error("Veuillez expliquer pourquoi vous souhaitez être certifié");
+      return;
+    }
+    setSubmittingCert(true);
+    const { error } = await (supabase as any)
+      .from("certification_requests")
+      .insert({ user_id: user.id, reason: certReason.trim() });
+    if (error) {
+      if (error.code === "23505") toast.error("Vous avez déjà soumis une demande");
+      else toast.error("Erreur lors de l'envoi");
+    } else {
+      toast.success("Demande envoyée avec succès !");
+      setCertRequest({ status: "pending" });
+      setCertReason("");
+    }
+    setSubmittingCert(false);
+  };
+
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return;
     setSaving(true);
@@ -953,6 +991,61 @@ const Settings = () => {
             }
           </p>
         </div>
+
+        {/* Demande de certification manuelle */}
+        {!isVerified && (
+          <div className="bg-card rounded-xl p-4 space-y-4">
+            <h4 className="font-semibold flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Demander la certification
+            </h4>
+            {certRequest ? (
+              <div className="space-y-2">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+                  certRequest.status === "pending" ? "bg-amber-500/10 text-amber-600" :
+                  certRequest.status === "approved" ? "bg-primary/10 text-primary" :
+                  "bg-destructive/10 text-destructive"
+                }`}>
+                  {certRequest.status === "pending" && "⏳ En attente de validation"}
+                  {certRequest.status === "approved" && "✅ Approuvée"}
+                  {certRequest.status === "rejected" && "❌ Refusée"}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {certRequest.status === "pending" 
+                    ? "Votre demande est en cours d'examen par notre équipe."
+                    : certRequest.status === "rejected"
+                    ? "Votre demande a été refusée. Vous pouvez réessayer ultérieurement."
+                    : "Félicitations ! Votre certification a été approuvée."
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Expliquez pourquoi vous souhaitez être certifié (notoriété, créateur de contenu, personnalité publique, etc.)
+                </p>
+                <textarea
+                  value={certReason}
+                  onChange={(e) => setCertReason(e.target.value)}
+                  placeholder="Je souhaite être certifié parce que..."
+                  className="w-full min-h-[100px] p-3 rounded-lg border border-border bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  maxLength={500}
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{certReason.length}/500</span>
+                  <Button 
+                    onClick={handleSubmitCertRequest} 
+                    disabled={submittingCert || !certReason.trim()}
+                    size="sm"
+                  >
+                    {submittingCert ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Envoyer la demande
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Voir les comptes certifiés */}
         <div className="bg-card rounded-xl overflow-hidden">
