@@ -270,7 +270,7 @@ const Pubb = () => {
                     {ad.media_url && (
                       <div className="relative w-full aspect-video bg-muted">
                         {ad.media_type === "video" ? (
-                          <video src={ad.media_url} className="w-full h-full object-cover" controls />
+                          <video src={ad.media_url} className="w-full h-full object-contain bg-black" controls />
                         ) : (
                           <img src={ad.media_url} alt={ad.title} className="w-full h-full object-cover" />
                         )}
