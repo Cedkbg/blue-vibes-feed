@@ -325,31 +325,35 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-firstname">Prénom *</Label>
-                    <Input
-                      id="signup-firstname"
-                      type="text"
-                      placeholder="Votre prénom"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                    />
+              <form onSubmit={handleSignUp} className="space-y-5">
+                {/* Section 1: Identité */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identité</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-firstname">Prénom *</Label>
+                      <Input
+                        id="signup-firstname"
+                        type="text"
+                        placeholder="Votre prénom"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-lastname">Nom *</Label>
+                      <Input
+                        id="signup-lastname"
+                        type="text"
+                        placeholder="Votre nom"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-lastname">Nom *</Label>
-                    <Input
-                      id="signup-lastname"
-                      type="text"
-                      placeholder="Votre nom"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-1.5">
                     <Label htmlFor="signup-username">Pseudo</Label>
                     <Input
                       id="signup-username"
@@ -359,8 +363,33 @@ const Auth = () => {
                       onChange={(e) => setUsername(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="signup-phone">Numéro de téléphone * (pour les appels)</Label>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Section 2: Contact */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-email">Email *</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="vous@exemple.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrors({});
+                      }}
+                      required
+                      className={errors.email ? "border-destructive" : ""}
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-destructive">{errors.email}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-phone">Téléphone * <span className="text-xs text-muted-foreground font-normal">(pour les appels)</span></Label>
                     <Input
                       id="signup-phone"
                       type="tel"
@@ -377,93 +406,91 @@ const Auth = () => {
                       <p className="text-sm text-destructive">{errors.phone}</p>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-birthdate">Date de naissance</Label>
-                    <Input
-                      id="signup-birthdate"
-                      type="date"
-                      value={birthdate}
-                      onChange={(e) => setBirthdate(e.target.value)}
-                    />
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Section 3: Infos complémentaires */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Informations complémentaires</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-birthdate">Naissance</Label>
+                      <Input
+                        id="signup-birthdate"
+                        type="date"
+                        value={birthdate}
+                        onChange={(e) => setBirthdate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-profession">Profession</Label>
+                      <Input
+                        id="signup-profession"
+                        type="text"
+                        placeholder="Designer..."
+                        value={profession}
+                        onChange={(e) => setProfession(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-location">Ville</Label>
+                      <Input
+                        id="signup-location"
+                        type="text"
+                        placeholder="Paris..."
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-profession">Profession</Label>
-                    <Input
-                      id="signup-profession"
-                      type="text"
-                      placeholder="Chef, Designer..."
-                      value={profession}
-                      onChange={(e) => setProfession(e.target.value)}
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Section 4: Sécurité */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sécurité</p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password">Mot de passe *</Label>
+                    <PasswordInput
+                      id="signup-password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErrors({});
+                      }}
+                      required
+                      minLength={6}
+                      className={errors.password ? "border-destructive" : ""}
                     />
+                    {errors.password && (
+                      <p className="text-sm text-destructive">{errors.password}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
                   </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="signup-location">Ville</Label>
-                    <Input
-                      id="signup-location"
-                      type="text"
-                      placeholder="Paris, Lyon..."
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm-password">Confirmer le mot de passe *</Label>
+                    <PasswordInput
+                      id="signup-confirm-password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        setErrors({ ...errors, confirmPassword: undefined });
+                      }}
+                      required
+                      minLength={6}
+                      className={errors.confirmPassword ? "border-destructive" : ""}
                     />
+                    {errors.confirmPassword && (
+                      <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                    )}
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="vous@exemple.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setErrors({});
-                    }}
-                    required
-                    className={errors.email ? "border-destructive" : ""}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Mot de passe</Label>
-                  <PasswordInput
-                    id="signup-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setErrors({});
-                    }}
-                    required
-                    minLength={6}
-                    className={errors.password ? "border-destructive" : ""}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password">Confirmer le mot de passe</Label>
-                  <PasswordInput
-                    id="signup-confirm-password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setErrors({ ...errors, confirmPassword: undefined });
-                    }}
-                    required
-                    minLength={6}
-                    className={errors.confirmPassword ? "border-destructive" : ""}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                  )}
-                </div>
-                <Button type="submit" className="w-full font-semibold" disabled={loading}>
+
+                <Button type="submit" className="w-full font-semibold mt-2" disabled={loading}>
                   {loading ? "Inscription..." : "Créer un compte"}
                 </Button>
               </form>
