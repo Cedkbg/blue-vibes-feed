@@ -98,7 +98,7 @@ const Settings = () => {
 
   useEffect(() => {
     const fetchVerifiedCount = async () => {
-      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", true);
+      const { count } = await supabase.from("profiles_public").select("*", { count: "exact", head: true }).eq("is_verified", true);
       setTotalVerified(count || 0);
     };
     fetchVerifiedCount();

@@ -41,7 +41,7 @@ export const useLiveChat = (streamId: string | undefined) => {
         
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, avatar_url")
             .in("id", userIds);
 
@@ -76,7 +76,7 @@ export const useLiveChat = (streamId: string | undefined) => {
           
           // Fetch profile for new message
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, avatar_url")
             .eq("id", newMessage.user_id)
             .single();

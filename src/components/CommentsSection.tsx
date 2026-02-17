@@ -67,7 +67,7 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
     const userIds = [...new Set(commentsData.map(c => c.user_id))];
     
     const { data: profilesData } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, username, display_name, avatar_url")
       .in("id", userIds);
 

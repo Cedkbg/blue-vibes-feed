@@ -21,7 +21,6 @@ interface Profile {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
-  phone_number: string | null;
 }
 
 interface CreateContactGroupModalProps {
@@ -50,10 +49,9 @@ export const CreateContactGroupModal = ({
       setLoading(true);
 
       const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, username, avatar_url, phone_number")
+        .from("profiles_public")
+        .select("id, display_name, username, avatar_url")
         .neq("id", user.id)
-        .not("phone_number", "is", null)
         .order("display_name");
 
       if (data) setContacts(data);
@@ -157,9 +155,9 @@ export const CreateContactGroupModal = ({
                       <p className="font-medium text-sm">
                         {contact.display_name || contact.username || "Utilisateur"}
                       </p>
-                      {contact.phone_number && (
+                      {contact.username && (
                         <p className="text-xs text-muted-foreground">
-                          {contact.phone_number}
+                          @{contact.username}
                         </p>
                       )}
                     </div>

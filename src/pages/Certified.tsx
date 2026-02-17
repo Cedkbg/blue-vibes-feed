@@ -21,7 +21,7 @@ const Certified = () => {
   useEffect(() => {
     const fetchVerified = async () => {
       const { data } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, username, display_name, avatar_url, profession")
         .eq("is_verified", true)
         .order("created_at", { ascending: true });

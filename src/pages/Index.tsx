@@ -25,7 +25,6 @@ interface Profile {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
-  birthdate: string | null;
   profession: string | null;
   location: string | null;
 }
@@ -62,8 +61,8 @@ const Index = () => {
 
     const userIds = [...new Set(postsData.map((p) => p.user_id))];
     const { data: profilesData } = await supabase
-      .from("profiles")
-      .select("id, display_name, username, avatar_url, birthdate, profession, location")
+      .from("profiles_public")
+      .select("id, display_name, username, avatar_url, profession, location")
       .in("id", userIds);
 
     const profilesMap = new Map<string, Profile>();
@@ -114,7 +113,7 @@ const Index = () => {
               user={{
                 name: post.profile?.display_name || post.profile?.username || "Utilisateur",
                 avatar: post.profile?.avatar_url || "",
-                age: calculateAge(post.profile?.birthdate || null),
+                age: null,
                 profession: post.profile?.profession || null,
                 location: post.profile?.location || null,
                 isFollowing: false,

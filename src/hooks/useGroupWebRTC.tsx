@@ -189,7 +189,7 @@ export const useGroupWebRTC = ({ groupId, callType, onCallEnded }: UseGroupWebRT
       if (currentParticipants && currentParticipants.length > 0) {
         const userIds = currentParticipants.map((p) => p.user_id);
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("id, display_name, username, avatar_url")
           .in("id", userIds);
 
@@ -352,7 +352,7 @@ export const useGroupWebRTC = ({ groupId, callType, onCallEnded }: UseGroupWebRT
 
           // Fetch profile
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, username, avatar_url")
             .eq("id", newParticipant.user_id)
             .single();

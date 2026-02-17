@@ -121,7 +121,7 @@ const CommunityDetails = () => {
     if (membersData && membersData.length > 0) {
       const userIds = membersData.map((m) => m.user_id);
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url, is_verified")
         .in("id", userIds);
 

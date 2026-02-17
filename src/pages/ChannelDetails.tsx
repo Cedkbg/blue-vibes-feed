@@ -73,7 +73,7 @@ const ChannelDetails = () => {
 
       // Fetch owner profile
       const { data: ownerData } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .eq("id", channelData.user_id)
         .single();

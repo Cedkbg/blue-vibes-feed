@@ -78,7 +78,7 @@ const Video = () => {
       const userIds = [...new Set(postsData.map((p) => p.user_id))];
 
       const { data: profilesData } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .in("id", userIds);
 

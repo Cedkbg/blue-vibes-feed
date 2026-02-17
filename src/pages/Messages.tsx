@@ -71,7 +71,7 @@ const Messages = () => {
     );
 
     const { data: profiles } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, display_name, username, avatar_url, is_online")
       .in("id", otherUserIds);
 
@@ -116,8 +116,8 @@ const Messages = () => {
     if (!user) return;
 
     const { data } = await supabase
-      .from("profiles")
-      .select("id, display_name, username, avatar_url, is_online, phone_number")
+      .from("profiles_public")
+      .select("id, display_name, username, avatar_url, is_online")
       .neq("id", user.id)
       .limit(100);
 

@@ -106,7 +106,7 @@ const Profile = () => {
     if (!viewingUserId) return;
     
     const { data, error } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("username, display_name, bio, avatar_url, external_link, is_private, language")
       .eq("id", viewingUserId)
       .maybeSingle();

@@ -49,7 +49,7 @@ export const useNotifications = () => {
         
         if (fromUserIds.length > 0) {
           const { data: profiles } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, username, avatar_url")
             .in("id", fromUserIds as string[]);
 
@@ -92,7 +92,7 @@ export const useNotifications = () => {
           // Fetch from_user profile if exists
           if (newNotification.from_user_id) {
             const { data: profile } = await supabase
-              .from("profiles")
+              .from("profiles_public")
               .select("id, display_name, username, avatar_url")
               .eq("id", newNotification.from_user_id)
               .single();

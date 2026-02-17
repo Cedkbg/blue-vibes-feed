@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewsArticle {
   id: string;
@@ -13,8 +14,6 @@ interface NewsArticle {
   };
   category: string;
 }
-
-const GNEWS_API_KEY = "c37dd00dca40ccb10d74f67f1ba1f71b"; // Free tier API key
 
 const categories = ["general", "world", "nation", "business", "technology", "entertainment", "sports", "science", "health"];
 
@@ -35,21 +34,13 @@ export const useWorldNews = () => {
     setError(null);
 
     try {
-      let url = `https://gnews.io/api/v4/top-headlines?category=${category}&lang=fr&country=any&max=20&apikey=${GNEWS_API_KEY}`;
-      
-      if (query && query.trim()) {
-        url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=fr&max=20&apikey=${GNEWS_API_KEY}`;
-      }
+      const { data, error: fnError } = await supabase.functions.invoke("fetch-news", {
+        body: { category, query: query?.trim() || undefined },
+      });
 
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error("Erreur lors de la récupération des actualités");
-      }
+      if (fnError) throw fnError;
 
-      const data = await response.json();
-
-      if (data.articles) {
+      if (data?.articles) {
         const formattedArticles: NewsArticle[] = data.articles.map((article: any, index: number) => ({
           id: `${Date.now()}-${index}`,
           title: article.title,

@@ -122,7 +122,7 @@ const Friends = () => {
     setLoading(true);
     
     const query = supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, display_name, username, avatar_url, is_verified, is_online, profession")
       .order("created_at", { ascending: false })
       .limit(20);
