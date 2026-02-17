@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight, User, Shield, Bell, Wallet, Smartphone, Clock, Users, ShoppingBag, BarChart3, HelpCircle, Info, Lock, Globe, Languages, Moon, Sun, Eye, MessageCircle, AtSign, Copy, Download, Ban, Volume2, Trash2, Key, LogOut, CreditCard, Heart, Gift, History, Accessibility, Filter, Baby, Link2, Smartphone as Phone, Mail, Calendar, Loader2, Check } from "lucide-react";
+import { ArrowLeft, ChevronRight, User, Shield, Bell, Wallet, Smartphone, Clock, Users, ShoppingBag, BarChart3, HelpCircle, Info, Lock, Globe, Languages, Moon, Sun, Eye, MessageCircle, AtSign, Copy, Download, Ban, Volume2, Trash2, Key, LogOut, CreditCard, Heart, Gift, History, Accessibility, Filter, Baby, Link2, Smartphone as Phone, Mail, Calendar, Loader2, Check, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ type SettingsSection =
   | "main" | "account" | "security" | "privacy" | "interactions" 
   | "notifications" | "monetization" | "content" | "screentime" 
   | "parental" | "shop" | "creator" | "help" | "about" | "blocked"
-  | "change-password";
+  | "change-password" | "certification";
 
 const Settings = () => {
   const { user, loading } = useAuth();
@@ -58,6 +58,8 @@ const Settings = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [helpSection, setHelpSection] = useState<"main" | "faq">("main");
+  const [isVerified, setIsVerified] = useState(false);
+  const [totalVerified, setTotalVerified] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -80,14 +82,24 @@ const Settings = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("profiles")
-      .select("username, bio, avatar_url, display_name, birthdate, profession, location, external_link, is_private, language, phone_number")
+      .select("username, bio, avatar_url, display_name, birthdate, profession, location, external_link, is_private, language, phone_number, is_verified")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!error && data) setProfile(data);
+    if (!error && data) {
+      setProfile(data);
+      setIsVerified(data.is_verified || false);
+    }
     setLoadingProfile(false);
   };
 
+  useEffect(() => {
+    const fetchVerifiedCount = async () => {
+      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", true);
+      setTotalVerified(count || 0);
+    };
+    fetchVerifiedCount();
+  }, []);
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return;
     setSaving(true);
@@ -256,6 +268,13 @@ const Settings = () => {
           <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Bien-être numérique</p>
           <div className="bg-card mx-4 rounded-xl overflow-hidden">
             <MenuItem icon={Clock} title="Temps d'écran" subtitle="Limites, pauses" onClick={() => setCurrentSection("screentime")} />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <p className="px-4 text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Certification</p>
+          <div className="bg-card mx-4 rounded-xl overflow-hidden">
+            <MenuItem icon={BadgeCheck} title="Certification" subtitle="Statut et demande de vérification" onClick={() => setCurrentSection("certification")} />
           </div>
         </div>
 
@@ -897,6 +916,52 @@ const Settings = () => {
     </ScrollArea>
   );
 
+  const renderCertificationSection = () => (
+    <ScrollArea className="flex-1">
+      <div className="p-4 pb-8 space-y-6">
+        {/* Statut actuel */}
+        <div className="bg-card rounded-xl p-6 text-center space-y-3">
+          <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${isVerified ? "bg-primary/10" : "bg-muted"}`}>
+            <BadgeCheck className={`w-8 h-8 ${isVerified ? "text-primary" : "text-muted-foreground"}`} />
+          </div>
+          <h3 className="text-lg font-bold">{isVerified ? "Compte certifié ✓" : "Compte non certifié"}</h3>
+          <p className="text-sm text-muted-foreground">
+            {isVerified 
+              ? "Votre compte est vérifié. Vous bénéficiez du badge de certification sur votre profil."
+              : "Votre compte n'est pas encore certifié. La certification est automatique pour les 1000 premiers inscrits."
+            }
+          </p>
+        </div>
+
+        {/* Promotion info */}
+        <div className="bg-card rounded-xl p-4 space-y-3">
+          <h4 className="font-semibold flex items-center gap-2">
+            <Gift className="w-5 h-5 text-primary" />
+            Promotion 1000 premiers comptes
+          </h4>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Comptes certifiés</span>
+            <span className="font-bold text-primary">{totalVerified} / 1 000</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${Math.min((totalVerified / 1000) * 100, 100)}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {totalVerified >= 1000 
+              ? "La promotion est terminée. Les 1000 places ont été attribuées."
+              : `Il reste ${1000 - totalVerified} place(s) disponible(s) pour la certification automatique.`
+            }
+          </p>
+        </div>
+
+        {/* Voir les comptes certifiés */}
+        <div className="bg-card rounded-xl overflow-hidden">
+          <MenuItem icon={Users} title="Voir les comptes certifiés" subtitle="Parcourir les profils vérifiés" onClick={() => navigate("/certified")} />
+        </div>
+      </div>
+    </ScrollArea>
+  );
+
   const getSectionTitle = () => {
     const titles: Record<SettingsSection, string> = {
       main: "Paramètres", account: "Gérer le compte", security: "Sécurité",
@@ -904,7 +969,7 @@ const Settings = () => {
       monetization: "Monétisation", content: "Contenu et affichage", screentime: "Temps d'écran",
       parental: "Contrôle parental", shop: "CedLite Shop", creator: "Centre du créateur",
       help: "Aide et assistance", about: "À propos", blocked: "Comptes bloqués",
-      "change-password": "Changer le mot de passe",
+      "change-password": "Changer le mot de passe", certification: "Certification",
     };
     return titles[currentSection];
   };
@@ -921,6 +986,7 @@ const Settings = () => {
       case "content": return renderContentSection();
       case "screentime": return renderScreenTimeSection();
       case "blocked": return renderBlockedSection();
+      case "certification": return renderCertificationSection();
       case "help": return renderHelpSection();
       case "about": return renderAboutSection();
       default: return renderMainMenu();
