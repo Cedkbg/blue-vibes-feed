@@ -70,7 +70,7 @@ export const SuggestedAccounts = ({ onNavigate }: SuggestedAccountsProps) => {
       const excludeIds = [user.id, ...followingIds];
 
       const { data } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url, bio")
         .not("id", "in", `(${excludeIds.join(",")})`)
         .limit(6);

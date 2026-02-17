@@ -73,7 +73,7 @@ const Pubb = () => {
     if (!error && data) {
       const userIds = [...new Set(data.map(a => a.user_id))];
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .in("id", userIds);
 

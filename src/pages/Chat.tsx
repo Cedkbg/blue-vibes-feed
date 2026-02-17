@@ -63,7 +63,7 @@ const Chat = () => {
     const fetchRecipient = async () => {
       if (!recipientId) return;
       const { data } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .eq("id", recipientId)
         .single();

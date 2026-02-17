@@ -58,7 +58,7 @@ export const FollowersModal = ({ open, onOpenChange, userId, defaultTab = "follo
 
     if (allIds.length > 0) {
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .in("id", allIds);
 

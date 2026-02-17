@@ -39,7 +39,7 @@ const Search = () => {
     }
 
     const { data } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, username, display_name, avatar_url, bio")
       .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
       .limit(20);

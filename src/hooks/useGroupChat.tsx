@@ -58,7 +58,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
     if (data && data.length > 0) {
       const userIds = new Set(data.map((m) => m.user_id));
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .in("id", Array.from(userIds));
 
@@ -170,7 +170,7 @@ export const useGroupChat = ({ groupId, communityId }: UseGroupChatOptions) => {
           
           // Fetch profile for the new message
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, username, avatar_url")
             .eq("id", newMessage.user_id)
             .single();

@@ -53,7 +53,7 @@ export const useStories = () => {
         // Fetch profiles for stories
         const userIds = [...new Set(storiesData.map((s) => s.user_id))];
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("id, display_name, username, avatar_url")
           .in("id", userIds);
 

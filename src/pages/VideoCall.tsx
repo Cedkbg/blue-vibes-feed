@@ -16,7 +16,6 @@ interface Contact {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
-  phone_number: string | null;
 }
 
 const VideoCall = () => {
@@ -66,8 +65,8 @@ const VideoCall = () => {
       if (!contactId) return;
       
       const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, username, avatar_url, phone_number")
+        .from("profiles_public")
+        .select("id, display_name, username, avatar_url")
         .eq("id", contactId)
         .single();
       
@@ -191,9 +190,6 @@ const VideoCall = () => {
                 {callStatus === "connected" && formatCallDuration(callDuration)}
                 {callStatus === "ended" && "Appel terminé"}
               </p>
-              {contact?.phone_number && (
-                <p className="text-white/50 text-sm mt-1">{contact.phone_number}</p>
-              )}
             </div>
           </div>
         )}

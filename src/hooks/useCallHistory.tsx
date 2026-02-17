@@ -55,7 +55,7 @@ export const useCallHistory = () => {
       });
 
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name, username, avatar_url")
         .in("id", Array.from(userIds));
 
