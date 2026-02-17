@@ -12,6 +12,7 @@ import cedliteLogo from "@/assets/cedlite-logo.png";
 import { z } from "zod";
 import OnboardingWelcome from "@/components/OnboardingWelcome";
 import OnboardingFeatures from "@/components/OnboardingFeatures";
+import PasswordInput from "@/components/PasswordInput";
 
 const emailSchema = z.string().email("Email invalide");
 const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
@@ -293,9 +294,8 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Mot de passe</Label>
-                  <Input
+                  <PasswordInput
                     id="signin-password"
-                    type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => {
@@ -428,9 +428,8 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Mot de passe</Label>
-                  <Input
+                  <PasswordInput
                     id="signup-password"
-                    type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => {
@@ -448,9 +447,8 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm-password">Confirmer le mot de passe</Label>
-                  <Input
+                  <PasswordInput
                     id="signup-confirm-password"
-                    type="password"
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => {
