@@ -121,11 +121,17 @@ const Friends = () => {
   const fetchDiscoverData = async () => {
     setLoading(true);
     
-    const { data: profiles } = await supabase
+    const query = supabase
       .from("profiles")
       .select("id, display_name, username, avatar_url, is_verified, is_online, profession")
       .order("created_at", { ascending: false })
       .limit(20);
+    
+    if (user) {
+      query.neq("id", user.id);
+    }
+    
+    const { data: profiles } = await query;
     
     if (profiles) {
       setPopularCreators(profiles);
