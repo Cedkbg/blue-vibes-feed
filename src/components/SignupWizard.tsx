@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import PasswordInput from "@/components/PasswordInput";
 import { User, Mail, Phone, Info, Shield, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { validateEmailDomain, type EmailValidation } from "@/utils/emailDomainValidator";
 
 interface SignupWizardProps {
   firstName: string;
@@ -200,37 +201,74 @@ const StepIdentity = (p: SignupWizardProps) => (
   </div>
 );
 
-const StepContact = (p: SignupWizardProps) => (
-  <div className="space-y-4">
-    <div className="space-y-1.5">
-      <Label htmlFor="w-email">Email *</Label>
-      <Input
-        id="w-email"
-        type="email"
-        placeholder="vous@exemple.com"
-        value={p.email}
-        onChange={e => { p.setEmail(e.target.value); p.setErrors({}); }}
-        required
-        className={p.errors.email ? "border-destructive" : ""}
-      />
-      {p.errors.email && <p className="text-sm text-destructive">{p.errors.email}</p>}
+const StepContact = (p: SignupWizardProps) => {
+  const [emailHint, setEmailHint] = React.useState<EmailValidation | null>(null);
+
+  const handleEmailChange = (value: string) => {
+    p.setEmail(value);
+    p.setErrors({});
+    if (value.includes("@") && value.split("@")[1]?.length >= 3) {
+      const result = validateEmailDomain(value);
+      setEmailHint(result.isValid ? null : result);
+    } else {
+      setEmailHint(null);
+    }
+  };
+
+  const applySuggestion = () => {
+    if (emailHint?.suggestion) {
+      const local = p.email.split("@")[0];
+      p.setEmail(`${local}@${emailHint.suggestion}`);
+      setEmailHint(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="w-email">Email *</Label>
+        <Input
+          id="w-email"
+          type="email"
+          placeholder="vous@exemple.com"
+          value={p.email}
+          onChange={e => handleEmailChange(e.target.value)}
+          required
+          className={p.errors.email || emailHint ? "border-destructive" : ""}
+        />
+        {p.errors.email && <p className="text-sm text-destructive">{p.errors.email}</p>}
+        {emailHint && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/30 p-2.5 space-y-1">
+            <p className="text-sm text-destructive font-medium">{emailHint.message}</p>
+            {emailHint.suggestion && (
+              <button
+                type="button"
+                onClick={applySuggestion}
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                Utiliser {emailHint.suggestion} →
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="w-phone">Téléphone *</Label>
+        <Input
+          id="w-phone"
+          type="tel"
+          placeholder="+33 6 12 34 56 78"
+          value={p.phoneNumber}
+          onChange={e => { p.setPhoneNumber(e.target.value); p.setErrors({ ...p.errors, phone: undefined }); }}
+          required
+          className={p.errors.phone ? "border-destructive" : ""}
+        />
+        {p.errors.phone && <p className="text-sm text-destructive">{p.errors.phone}</p>}
+        <p className="text-xs text-muted-foreground">Utilisé pour les appels audio/vidéo</p>
+      </div>
     </div>
-    <div className="space-y-1.5">
-      <Label htmlFor="w-phone">Téléphone *</Label>
-      <Input
-        id="w-phone"
-        type="tel"
-        placeholder="+33 6 12 34 56 78"
-        value={p.phoneNumber}
-        onChange={e => { p.setPhoneNumber(e.target.value); p.setErrors({ ...p.errors, phone: undefined }); }}
-        required
-        className={p.errors.phone ? "border-destructive" : ""}
-      />
-      {p.errors.phone && <p className="text-sm text-destructive">{p.errors.phone}</p>}
-      <p className="text-xs text-muted-foreground">Utilisé pour les appels audio/vidéo</p>
-    </div>
-  </div>
-);
+  );
+};
 
 const StepInfo = (p: SignupWizardProps) => (
   <div className="space-y-4">
