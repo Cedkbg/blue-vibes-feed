@@ -211,7 +211,7 @@ const Messages = () => {
   });
 
   return (
-    <DesktopLayout showRightSidebar={false} title="Messages">
+    <DesktopLayout showRightSidebar={false} showTopBar={false}>
       {/* Header */}
       <header className="bg-primary text-primary-foreground px-6 py-4">
         <div className="flex items-center justify-between mb-4">
