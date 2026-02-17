@@ -52,8 +52,8 @@ export const FollowersModal = ({ open, onOpenChange, userId, defaultTab = "follo
       .select("following_id")
       .eq("follower_id", userId);
 
-    const followerIds = followerRows?.map(f => f.follower_id) || [];
-    const followingIds = followingRows?.map(f => f.following_id) || [];
+    const followerIds = (followerRows?.map(f => f.follower_id) || []).filter(id => id !== userId);
+    const followingIds = (followingRows?.map(f => f.following_id) || []).filter(id => id !== userId);
     const allIds = [...new Set([...followerIds, ...followingIds])];
 
     if (allIds.length > 0) {
