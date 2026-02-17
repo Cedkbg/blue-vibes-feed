@@ -27,6 +27,7 @@ import CommunityDetails from "./pages/CommunityDetails";
 import ChannelDetails from "./pages/ChannelDetails";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import Certified from "./pages/Certified";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
 
@@ -60,6 +61,7 @@ const AppContent = () => {
         <Route path="/group/:groupId" element={<ProtectedRoute><GroupDetails /></ProtectedRoute>} />
         <Route path="/community/:communityId" element={<ProtectedRoute><CommunityDetails /></ProtectedRoute>} />
         <Route path="/channel/:channelId" element={<ProtectedRoute><ChannelDetails /></ProtectedRoute>} />
+        <Route path="/certified" element={<ProtectedRoute><Certified /></ProtectedRoute>} />
         <Route path="/reset-password" element={<ResetPassword />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

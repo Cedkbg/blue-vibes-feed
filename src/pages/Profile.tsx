@@ -178,8 +178,11 @@ const Profile = () => {
     }
   };
 
-  const handleVideoClick = (postId: string) => {
-    navigate(`/video?id=${postId}`);
+  const handlePostClick = (postId: string, mediaType?: string | null) => {
+    if (mediaType === "video") {
+      navigate(`/video?id=${postId}`);
+    }
+    // For images, do nothing (or could open a detail view later)
   };
 
   if (loading || loadingProfile) {
@@ -389,7 +392,7 @@ const Profile = () => {
                 <div 
                   key={post.id} 
                   className="aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
-                  onClick={() => handleVideoClick(post.id)}
+                  onClick={() => handlePostClick(post.id, post.media_type)}
                 >
                   {post.media_url && (
                     <img 
@@ -416,7 +419,7 @@ const Profile = () => {
                 <div 
                   key={video.id} 
                   className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
-                  onClick={() => handleVideoClick(video.id)}
+                  onClick={() => handlePostClick(video.id, "video")}
                 >
                   {video.media_url && (
                     <video 
@@ -448,7 +451,7 @@ const Profile = () => {
                   <div 
                     key={fav.id} 
                     className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
-                    onClick={() => handleVideoClick(fav.id)}
+                    onClick={() => handlePostClick(fav.id, fav.media_type)}
                   >
                     {fav.media_url && (
                       fav.media_type === "video" ? (

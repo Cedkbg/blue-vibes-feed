@@ -36,17 +36,19 @@ export const useFollows = (targetUserId?: string) => {
   const fetchFollowCounts = async () => {
     if (!targetUserId) return;
 
-    // Get followers count
+    // Get followers count (exclude self-follows)
     const { count: followers } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
-      .eq("following_id", targetUserId);
+      .eq("following_id", targetUserId)
+      .neq("follower_id", targetUserId);
 
-    // Get following count
+    // Get following count (exclude self-follows)
     const { count: following } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
-      .eq("follower_id", targetUserId);
+      .eq("follower_id", targetUserId)
+      .neq("following_id", targetUserId);
 
     setFollowersCount(followers || 0);
     setFollowingCount(following || 0);

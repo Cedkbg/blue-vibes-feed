@@ -861,7 +861,7 @@ const Settings = () => {
             <div className="bg-card rounded-xl p-4 text-center">
               <p className="text-sm text-muted-foreground">CedLite v1.0.0</p>
               <p className="text-xs text-muted-foreground mt-1">© 2026 CedLite. Tous droits réservés.</p>
-              <p className="text-xs text-muted-foreground mt-1">Fait avec ❤️ pour la communauté</p>
+              <p className="text-xs text-muted-foreground mt-1">Fait par Ced KABONGO pour la communauté</p>
             </div>
           </div>
         </div>

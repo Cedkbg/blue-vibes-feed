@@ -12,6 +12,7 @@ import cedliteLogo from "@/assets/cedlite-logo.png";
 import { z } from "zod";
 import OnboardingWelcome from "@/components/OnboardingWelcome";
 import OnboardingFeatures from "@/components/OnboardingFeatures";
+import OnboardingPromo from "@/components/OnboardingPromo";
 import PasswordInput from "@/components/PasswordInput";
 
 
@@ -246,7 +247,11 @@ const Auth = () => {
   }
 
   if (onboardingStep === 1) {
-    return <OnboardingFeatures onBack={() => setOnboardingStep(0)} onNext={() => { sessionStorage.setItem("cedlite_onboarded", "true"); setOnboardingStep(null); }} />;
+    return <OnboardingFeatures onBack={() => setOnboardingStep(0)} onNext={() => setOnboardingStep(2)} />;
+  }
+
+  if (onboardingStep === 2) {
+    return <OnboardingPromo onBack={() => setOnboardingStep(1)} onNext={() => { sessionStorage.setItem("cedlite_onboarded", "true"); setOnboardingStep(null); }} />;
   }
 
 
