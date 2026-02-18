@@ -9,6 +9,7 @@ export const useFollows = (targetUserId?: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (targetUserId) {
@@ -31,19 +32,31 @@ export const useFollows = (targetUserId?: string) => {
       .maybeSingle();
 
     setIsFollowing(!!data);
+
+    // Check pending follow request
+    if (!data) {
+      const { data: reqData } = await supabase
+        .from("follow_requests")
+        .select("status")
+        .eq("requester_id", user.id)
+        .eq("target_id", targetUserId)
+        .eq("status", "pending")
+        .maybeSingle();
+      setRequestStatus(reqData?.status || null);
+    } else {
+      setRequestStatus(null);
+    }
   };
 
   const fetchFollowCounts = async () => {
     if (!targetUserId) return;
 
-    // Get followers count (exclude self-follows)
     const { count: followers } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
       .eq("following_id", targetUserId)
       .neq("follower_id", targetUserId);
 
-    // Get following count (exclude self-follows)
     const { count: following } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
@@ -78,15 +91,50 @@ export const useFollows = (targetUserId?: string) => {
         setIsFollowing(false);
         setFollowersCount((prev) => Math.max(0, prev - 1));
         toast.success("Désabonné");
+      } else if (requestStatus === "pending") {
+        // Cancel pending request
+        await supabase
+          .from("follow_requests")
+          .delete()
+          .eq("requester_id", user.id)
+          .eq("target_id", targetUserId);
+        setRequestStatus(null);
+        toast.success("Demande annulée");
       } else {
-        await supabase.from("follows").insert({
-          follower_id: user.id,
-          following_id: targetUserId,
-        });
+        // Check if target account is private
+        const { data: targetProfile } = await supabase
+          .from("profiles_public")
+          .select("is_private")
+          .eq("id", targetUserId)
+          .maybeSingle();
 
-        setIsFollowing(true);
-        setFollowersCount((prev) => prev + 1);
-        toast.success("Abonné !");
+        if (targetProfile?.is_private) {
+          // Send follow request
+          const { error } = await supabase.from("follow_requests").insert({
+            requester_id: user.id,
+            target_id: targetUserId,
+          });
+          if (error) {
+            if (error.code === "23505") {
+              toast.info("Demande déjà envoyée");
+            } else {
+              toast.error("Erreur lors de l'envoi");
+            }
+          } else {
+            setRequestStatus("pending");
+            toast.success("Demande d'abonnement envoyée !");
+          }
+        } else {
+          // Direct follow
+          await supabase.from("follows").insert({
+            follower_id: user.id,
+            following_id: targetUserId,
+          });
+
+          setIsFollowing(true);
+          setFollowersCount((prev) => prev + 1);
+          toast.success("Abonné !");
+        }
       }
     } catch (error) {
       console.error("Error toggling follow:", error);
@@ -96,12 +144,13 @@ export const useFollows = (targetUserId?: string) => {
     }
   };
 
-  return { 
-    isFollowing, 
-    toggleFollow, 
-    isLoading, 
-    followersCount, 
+  return {
+    isFollowing,
+    toggleFollow,
+    isLoading,
+    followersCount,
     followingCount,
-    refetch: fetchFollowCounts 
+    requestStatus,
+    refetch: fetchFollowCounts,
   };
 };
