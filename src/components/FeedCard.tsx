@@ -152,15 +152,15 @@ export const FeedCard = ({
     : caption;
 
   const handleShare = async (platform?: string) => {
-    const shareUrl = `${window.location.origin}/post/${id}`;
-    const shareText = caption.slice(0, 100) || `Post de ${user.name}`;
+    const shareUrl = `${window.location.origin}/p/${id}`;
+    const shareText = caption.slice(0, 100) || `Post de ${user.name} sur CedLite`;
     
     if (!platform) {
       // Try native share first
       if (navigator.share) {
         try {
           await navigator.share({
-            title: `Post de ${user.name}`,
+            title: `CedLite – Post de ${user.name}`,
             text: shareText,
             url: shareUrl,
           });

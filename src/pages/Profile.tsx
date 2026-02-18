@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3, Clock, Lock } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3, Clock, Lock, Share2 } from "lucide-react";
 import { FollowersModal } from "@/components/FollowersModal";
 import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
@@ -168,6 +168,25 @@ const Profile = () => {
     }
   };
 
+  const handleShareProfile = async () => {
+    const username = profile?.username;
+    const shareUrl = username
+      ? `${window.location.origin}/u/${username}`
+      : `${window.location.origin}/profile/${viewingUserId}`;
+    const shareText = `${profile?.display_name || profile?.username || "Profil"} sur CedLite`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareText, url: shareUrl });
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Lien copié !");
+  };
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -218,26 +237,38 @@ const Profile = () => {
             {isOwnProfile ? "Profil" : profile?.username || "Profil"}
           </h1>
         </div>
-        {isOwnProfile && (
-          <div className="flex items-center gap-2">
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        )}
+        {/* Share button always visible */}
+        <div className="flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={handleShareProfile}
+            aria-label="Partager le profil"
+          >
+            <Share2 className="w-5 h-5" />
+          </Button>
+          {isOwnProfile && (
+            <>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={() => navigate("/settings")}
+              >
+                <Settings className="w-5 h-5" />
+              </Button>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Profile Info */}
