@@ -181,8 +181,10 @@ const Profile = () => {
   const handlePostClick = (postId: string, mediaType?: string | null) => {
     if (mediaType === "video") {
       navigate(`/video?id=${postId}`);
+    } else {
+      // Navigate to the feed scrolled to this post
+      navigate(`/?highlight=${postId}`);
     }
-    // For images, do nothing (or could open a detail view later)
   };
 
   if (loading || loadingProfile) {

@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { NotificationsSheet } from "@/components/NotificationsSheet";
@@ -20,6 +20,15 @@ export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
         </div>
         <div className="flex gap-2">
           <NotificationsSheet />
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => navigate("/trending")}
+            aria-label="Tendances"
+          >
+            <Flame className="w-5 h-5" />
+          </Button>
           <Button 
             size="icon" 
             variant="ghost" 

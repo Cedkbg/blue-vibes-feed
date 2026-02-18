@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
+import { HashtagText } from "@/components/HashtagText";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
@@ -388,7 +389,7 @@ export const FeedCard = ({
 
             {/* Caption */}
             <div className="mb-4">
-              <p className="text-foreground text-base">{displayCaption}</p>
+              <HashtagText text={displayCaption} className="text-foreground text-base" />
               {shouldTruncate && (
                 <button 
                   onClick={() => setIsExpanded(!isExpanded)}
