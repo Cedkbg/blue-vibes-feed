@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { 
   Play, Heart, MessageCircle, Share2, Volume2, VolumeX, 
   Bookmark, Download, ChevronDown, ChevronUp,
@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { TopBar } from "@/components/TopBar";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,8 @@ const Video = () => {
   const { user } = useAuth();
   const [videos, setVideos] = useState<VideoPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -66,13 +69,19 @@ const Video = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  const fetchVideos = async () => {
+  const VIDEO_PAGE_SIZE = 10;
+
+  const fetchVideos = async (offset = 0, append = false) => {
+    if (offset === 0) setIsLoading(true);
+    else setIsLoadingMore(true);
+
     const { data: postsData, error } = await supabase
       .from("posts")
       .select("id, user_id, media_url, caption, likes_count, comments_count, created_at, channel_id, group_id, community_id")
       .eq("media_type", "video")
       .not("media_url", "is", null)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + VIDEO_PAGE_SIZE - 1);
 
     if (!error && postsData) {
       const userIds = [...new Set(postsData.map((p) => p.user_id))];
@@ -127,29 +136,38 @@ const Video = () => {
         };
       });
 
-      setVideos(videosWithProfiles);
+      const newVideos = videosWithProfiles;
+      setHasMore(postsData.length === VIDEO_PAGE_SIZE);
+
+      if (append) {
+        setVideos((prev) => [...prev, ...newVideos]);
+      } else {
+        setVideos(newVideos);
+      }
     }
     setIsLoading(false);
+    setIsLoadingMore(false);
   };
 
+  const loadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      fetchVideos(videos.length, true);
+    }
+  }, [videos.length, isLoadingMore, hasMore]);
+
+  const { setSentinelRef } = useInfiniteScroll(loadMore, hasMore, isLoadingMore);
+
   useEffect(() => {
-    fetchVideos();
+    fetchVideos(0, false);
 
     const channel = supabase
       .channel("videos-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "posts",
-        },
+        { event: "INSERT", schema: "public", table: "posts" },
         (payload) => {
-          if (
-            payload.eventType === "DELETE" ||
-            (payload.new as any)?.media_type === "video"
-          ) {
-            fetchVideos();
+          if ((payload.new as any)?.media_type === "video") {
+            fetchVideos(0, false);
           }
         }
       )
@@ -252,6 +270,15 @@ const Video = () => {
               formatCount={formatCount}
             />
           ))}
+          {/* Infinite scroll sentinel */}
+          <div ref={setSentinelRef} className="h-20 flex items-center justify-center bg-black snap-start">
+            {isLoadingMore && (
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            )}
+            {!hasMore && videos.length > 0 && (
+              <p className="text-white/40 text-sm">Toutes les vidéos sont chargées 🎬</p>
+            )}
+          </div>
         </div>
       )}
 

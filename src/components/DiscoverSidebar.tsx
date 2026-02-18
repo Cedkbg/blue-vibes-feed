@@ -231,30 +231,9 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {filteredCategories.map(cat => (
-          <Card
-            key={cat.id}
-            className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
-            onClick={() => setSelectedCategory(cat)}
-          >
-            <CardContent className="p-0">
-              <div className={`bg-gradient-to-br ${cat.color} p-3`}>
-                <cat.icon className="w-6 h-6 text-white mb-2" />
-                <h3 className="font-bold text-white text-xs">{cat.label}</h3>
-                <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{cat.description}</p>
-                <Badge className="mt-2 bg-white/20 text-white border-none text-[10px]">
-                  {posts.filter(p => p.caption && cat.keywords.some(kw => p.caption!.toLowerCase().includes(kw.toLowerCase()))).length} posts
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Trending Banner */}
+      {/* Trending Banner - En premier pour visibilité */}
       <Card
-        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
+        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-3"
         onClick={() => { onNavigate(); navigate("/trending"); }}
       >
         <CardContent className="p-0">
@@ -263,8 +242,8 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-white text-sm">Tendances</h3>
-              <p className="text-white/80 text-[10px]">Hashtags populaires</p>
+              <h3 className="font-bold text-white text-sm">🔥 Tendances</h3>
+              <p className="text-white/80 text-[10px]">Hashtags populaires du moment</p>
             </div>
           </div>
         </CardContent>
@@ -272,7 +251,7 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
 
       {/* Pubb Banner */}
       <Card
-        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
+        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-3"
         onClick={() => { onNavigate(); navigate("/pubb"); }}
       >
         <CardContent className="p-0">
@@ -305,6 +284,29 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Categories grid */}
+      <h3 className="text-sm font-semibold text-muted-foreground mb-2">Catégories</h3>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {filteredCategories.map(cat => (
+          <Card
+            key={cat.id}
+            className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+            onClick={() => setSelectedCategory(cat)}
+          >
+            <CardContent className="p-0">
+              <div className={`bg-gradient-to-br ${cat.color} p-3`}>
+                <cat.icon className="w-6 h-6 text-white mb-2" />
+                <h3 className="font-bold text-white text-xs">{cat.label}</h3>
+                <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{cat.description}</p>
+                <Badge className="mt-2 bg-white/20 text-white border-none text-[10px]">
+                  {posts.filter(p => p.caption && cat.keywords.some(kw => p.caption!.toLowerCase().includes(kw.toLowerCase()))).length} posts
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <SuggestedAccounts onNavigate={onNavigate} />
     </div>
