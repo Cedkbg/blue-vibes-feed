@@ -252,6 +252,24 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
         ))}
       </div>
 
+      {/* Trending Banner */}
+      <Card
+        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
+        onClick={() => { onNavigate(); navigate("/trending"); }}
+      >
+        <CardContent className="p-0">
+          <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-4 flex items-center gap-3">
+            <div className="bg-white/20 rounded-full p-2">
+              <TrendingUp className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-white text-sm">Tendances</h3>
+              <p className="text-white/80 text-[10px]">Hashtags populaires</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Pubb Banner */}
       <Card
         className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"

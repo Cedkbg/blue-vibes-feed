@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3 } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3, Clock, Lock } from "lucide-react";
 import { FollowersModal } from "@/components/FollowersModal";
 import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ const Profile = () => {
   const viewingUserId = userId || user?.id;
   const isOwnProfile = !userId || userId === user?.id;
   
-  const { isFollowing, toggleFollow, isLoading: isFollowLoading, followersCount, followingCount } = useFollows(viewingUserId);
+  const { isFollowing, toggleFollow, isLoading: isFollowLoading, followersCount, followingCount, requestStatus } = useFollows(viewingUserId);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -341,7 +341,7 @@ const Profile = () => {
           </Sheet>
         ) : (
           <Button 
-            className={`w-full rounded-xl font-semibold ${isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
+            className={`w-full rounded-xl font-semibold ${isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : requestStatus === "pending" ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
             onClick={toggleFollow}
             disabled={isFollowLoading}
           >
@@ -349,6 +349,11 @@ const Profile = () => {
               <>
                 <UserCheck className="w-4 h-4 mr-2" />
                 Abonné
+              </>
+            ) : requestStatus === "pending" ? (
+              <>
+                <Clock className="w-4 h-4 mr-2" />
+                Demande envoyée
               </>
             ) : (
               <>
@@ -361,6 +366,15 @@ const Profile = () => {
       </div>
 
       {/* Content Tabs */}
+      {!isOwnProfile && profile?.is_private && !isFollowing ? (
+        <div className="text-center py-16 px-4">
+          <Lock className="w-16 h-16 mx-auto text-muted-foreground mb-4 opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">Ce compte est privé</h3>
+          <p className="text-muted-foreground text-sm">
+            Abonnez-vous à ce compte pour voir ses publications.
+          </p>
+        </div>
+      ) : (
       <Tabs defaultValue="posts" className="px-4 sm:px-6">
         <TabsList className={`w-full grid mb-4 ${isOwnProfile ? "grid-cols-3" : "grid-cols-2"}`}>
           <TabsTrigger value="posts" className="flex items-center gap-2">
@@ -478,6 +492,7 @@ const Profile = () => {
           </TabsContent>
         )}
       </Tabs>
+      )}
 
       <FollowersModal
         open={showFollowers}
