@@ -18,26 +18,23 @@ import PasswordInput from "@/components/PasswordInput";
 
 const emailSchema = z.string().email("Email invalide");
 const passwordSchema = z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères");
-const phoneSchema = z.string().min(8, "Numéro de téléphone invalide");
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  // null = login page, 0-2 = onboarding, 3 = splash, 4-7 = signup steps
-  const [onboardingStep, setOnboardingStep] = useState<number | null>(null);
+  // null = login page, 0-2 = onboarding, 3 = splash, 4-6 = signup steps (3 steps simplified)
+  // Visitors start at onboarding step 0 by default
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [birthdate, setBirthdate] = useState("");
-  const [profession, setProfession] = useState("");
   const [location, setLocation] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -45,28 +42,30 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const validateForm = (isSignup = false) => {
-    const newErrors: { email?: string; password?: string; phone?: string; confirmPassword?: string } = {};
+  const validateSignupForm = () => {
+    const newErrors: { email?: string; password?: string; confirmPassword?: string } = {};
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) newErrors.email = emailResult.error.errors[0].message;
     const passwordResult = passwordSchema.safeParse(password);
     if (!passwordResult.success) newErrors.password = passwordResult.error.errors[0].message;
-    if (isSignup) {
-      const phoneResult = phoneSchema.safeParse(phoneNumber);
-      if (!phoneResult.success) newErrors.phone = phoneResult.error.errors[0].message;
-      if (password !== confirmPassword) newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
-    }
+    if (password !== confirmPassword) newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateLoginForm = () => {
+    const newErrors: { email?: string; password?: string } = {};
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) newErrors.email = emailResult.error.errors[0].message;
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) newErrors.password = passwordResult.error.errors[0].message;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm(true)) return;
-    if (!phoneNumber.trim()) {
-      toast({ title: "Numéro requis", description: "Le numéro de téléphone est obligatoire.", variant: "destructive" });
-      return;
-    }
+    if (!validateSignupForm()) return;
     setLoading(true);
     try {
       const displayName = `${firstName} ${lastName}`.trim();
@@ -75,7 +74,7 @@ const Auth = () => {
         email, password,
         options: {
           emailRedirectTo: redirectUrl,
-          data: { display_name: displayName, first_name: firstName, last_name: lastName, profession, location }
+          data: { display_name: displayName, first_name: firstName, last_name: lastName, location }
         }
       });
       if (error) {
@@ -86,9 +85,11 @@ const Auth = () => {
         }
       } else if (data.user) {
         await supabase.from("profiles").update({
-          first_name: firstName || null, last_name: lastName || null, display_name: displayName || null,
-          username: username || null, phone_number: phoneNumber || null, birthdate: birthdate || null,
-          profession: profession || null, location: location || null,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          display_name: displayName || null,
+          birthdate: birthdate || null,
+          location: location || null,
         }).eq("id", data.user.id);
         toast({ title: "Inscription réussie 📧", description: "Un email de confirmation a été envoyé." });
         setOnboardingStep(null); // back to login
@@ -102,7 +103,7 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateLoginForm()) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -150,22 +151,26 @@ const Auth = () => {
     );
   }
 
-  // Onboarding flow
+  // Onboarding flow (steps 0-3)
   if (onboardingStep === 0) return <OnboardingWelcome onNext={() => setOnboardingStep(1)} />;
   if (onboardingStep === 1) return <OnboardingFeatures onBack={() => setOnboardingStep(0)} onNext={() => setOnboardingStep(2)} />;
   if (onboardingStep === 2) return <OnboardingPromo onBack={() => setOnboardingStep(1)} onNext={() => setOnboardingStep(3)} />;
   if (onboardingStep === 3) return <OnboardingSignupSplash onBack={() => setOnboardingStep(2)} onNext={() => setOnboardingStep(4)} />;
 
-  // Signup steps (4-7 map to step 0-3)
-  if (onboardingStep !== null && onboardingStep >= 4 && onboardingStep <= 7) {
+  // Signup steps (4-6 map to step 0-2, 3 steps total)
+  if (onboardingStep !== null && onboardingStep >= 4 && onboardingStep <= 6) {
     const signupStep = onboardingStep - 4;
     const sharedProps = {
-      firstName, setFirstName, lastName, setLastName, username, setUsername,
-      email, setEmail, phoneNumber, setPhoneNumber, birthdate, setBirthdate,
-      profession, setProfession, location, setLocation,
-      password, setPassword, confirmPassword, setConfirmPassword,
-      errors, setErrors, loading,
-      totalDots: 8,
+      firstName, setFirstName,
+      lastName, setLastName,
+      email, setEmail,
+      birthdate, setBirthdate,
+      location, setLocation,
+      password, setPassword,
+      confirmPassword, setConfirmPassword,
+      errors, setErrors,
+      loading,
+      totalDots: 7,
       currentDot: onboardingStep,
     };
     return (
@@ -179,7 +184,7 @@ const Auth = () => {
     );
   }
 
-  // Login page
+  // Login page (onboardingStep === null)
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
       <Card className="w-full max-w-md shadow-xl border-0">

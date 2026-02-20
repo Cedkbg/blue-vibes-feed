@@ -5,27 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import OnboardingDots from "./OnboardingDots";
-import { ArrowLeft, ArrowRight, CheckCircle2, User, Mail, Info, Shield } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, User, Mail, Shield } from "lucide-react";
 import { validateEmailDomain, type EmailValidation } from "@/utils/emailDomainValidator";
 
 interface SignupStepScreenProps {
-  step: number; // 0-3
+  step: number; // 0-2
   totalDots: number;
   currentDot: number;
   firstName: string;
   setFirstName: (v: string) => void;
   lastName: string;
   setLastName: (v: string) => void;
-  username: string;
-  setUsername: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
-  phoneNumber: string;
-  setPhoneNumber: (v: string) => void;
   birthdate: string;
   setBirthdate: (v: string) => void;
-  profession: string;
-  setProfession: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
   password: string;
@@ -41,9 +35,8 @@ interface SignupStepScreenProps {
 }
 
 const stepMeta = [
-  { title: "Identité", subtitle: "Qui êtes-vous ?", icon: User },
-  { title: "Contact", subtitle: "Comment vous joindre ?", icon: Mail },
-  { title: "Informations", subtitle: "Parlez-nous de vous", icon: Info },
+  { title: "Identité", subtitle: "Présentez-vous", icon: User },
+  { title: "Contact", subtitle: "Votre adresse email", icon: Mail },
   { title: "Sécurité", subtitle: "Protégez votre compte", icon: Shield },
 ];
 
@@ -57,12 +50,11 @@ const SignupStepScreen = (props: SignupStepScreenProps) => {
   const { step } = props;
   const meta = stepMeta[step];
   const Icon = meta.icon;
-  const isLast = step === 3;
+  const isLast = step === 2;
 
   const canGoNext = () => {
     if (step === 0) return props.firstName.trim() && props.lastName.trim();
-    if (step === 1) return props.email.trim() && props.phoneNumber.trim();
-    if (step === 2) return true;
+    if (step === 1) return props.email.trim();
     return false;
   };
 
@@ -126,8 +118,7 @@ const SignupStepScreen = (props: SignupStepScreenProps) => {
             >
               {step === 0 && <StepIdentity {...props} />}
               {step === 1 && <StepContact {...props} />}
-              {step === 2 && <StepInfo {...props} />}
-              {step === 3 && <StepSecurity {...props} />}
+              {step === 2 && <StepSecurity {...props} />}
             </form>
           </motion.div>
         </motion.div>
@@ -178,11 +169,6 @@ const StepIdentity = (p: SignupStepScreenProps) => (
     <div className="space-y-1.5">
       <Label htmlFor="fs-lastname">Nom *</Label>
       <Input id="fs-lastname" placeholder="Votre nom" value={p.lastName} onChange={e => p.setLastName(e.target.value)} required className="h-12 text-base" />
-    </div>
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-username">Pseudo</Label>
-      <Input id="fs-username" placeholder="@votre_pseudo" value={p.username} onChange={e => p.setUsername(e.target.value)} className="h-12 text-base" />
-      <p className="text-xs text-muted-foreground">Optionnel — visible par les autres utilisateurs</p>
     </div>
   </div>
 );
@@ -235,40 +221,16 @@ const StepContact = (p: SignupStepScreenProps) => {
         )}
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="fs-phone">Téléphone *</Label>
-        <Input
-          id="fs-phone"
-          type="tel"
-          placeholder="+33 6 12 34 56 78"
-          value={p.phoneNumber}
-          onChange={e => { p.setPhoneNumber(e.target.value); p.setErrors({ ...p.errors, phone: undefined }); }}
-          required
-          className={`h-12 text-base ${p.errors.phone ? "border-destructive" : ""}`}
-        />
-        {p.errors.phone && <p className="text-sm text-destructive">{p.errors.phone}</p>}
-        <p className="text-xs text-muted-foreground">Utilisé pour les appels audio/vidéo</p>
+        <Label htmlFor="fs-birth">Date de naissance <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+        <Input id="fs-birth" type="date" value={p.birthdate} onChange={e => p.setBirthdate(e.target.value)} className="h-12 text-base" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="fs-loc">Pays / Ville <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
+        <Input id="fs-loc" placeholder="Paris, France" value={p.location} onChange={e => p.setLocation(e.target.value)} className="h-12 text-base" />
       </div>
     </div>
   );
 };
-
-const StepInfo = (p: SignupStepScreenProps) => (
-  <div className="space-y-4">
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-birth">Date de naissance</Label>
-      <Input id="fs-birth" type="date" value={p.birthdate} onChange={e => p.setBirthdate(e.target.value)} className="h-12 text-base" />
-    </div>
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-prof">Profession</Label>
-      <Input id="fs-prof" placeholder="Designer, Développeur..." value={p.profession} onChange={e => p.setProfession(e.target.value)} className="h-12 text-base" />
-    </div>
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-loc">Pays / Ville</Label>
-      <Input id="fs-loc" placeholder="Paris, France" value={p.location} onChange={e => p.setLocation(e.target.value)} className="h-12 text-base" />
-    </div>
-    <p className="text-xs text-muted-foreground text-center">Ces informations sont facultatives.</p>
-  </div>
-);
 
 const StepSecurity = (p: SignupStepScreenProps) => (
   <div className="space-y-4">
