@@ -70,7 +70,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const displayName = `${firstName} ${lastName}`.trim();
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/interests`;
       const { data, error } = await supabase.auth.signUp({
         email, password,
         options: {
