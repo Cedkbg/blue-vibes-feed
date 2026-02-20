@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import OnboardingDots from "./OnboardingDots";
-import { ArrowLeft, ArrowRight, CheckCircle2, User, Mail, Shield } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, User, Shield } from "lucide-react";
 import { validateEmailDomain, type EmailValidation } from "@/utils/emailDomainValidator";
 
 interface SignupStepScreenProps {
@@ -36,7 +36,6 @@ interface SignupStepScreenProps {
 
 const stepMeta = [
   { title: "Identité", subtitle: "Présentez-vous", icon: User },
-  { title: "Contact", subtitle: "Votre adresse email", icon: Mail },
   { title: "Sécurité", subtitle: "Protégez votre compte", icon: Shield },
 ];
 
@@ -50,11 +49,10 @@ const SignupStepScreen = (props: SignupStepScreenProps) => {
   const { step } = props;
   const meta = stepMeta[step];
   const Icon = meta.icon;
-  const isLast = step === 2;
+  const isLast = step === 1;
 
   const canGoNext = () => {
-    if (step === 0) return props.firstName.trim() && props.lastName.trim();
-    if (step === 1) return props.email.trim();
+    if (step === 0) return props.firstName.trim() && props.lastName.trim() && props.email.trim();
     return false;
   };
 
@@ -117,8 +115,7 @@ const SignupStepScreen = (props: SignupStepScreenProps) => {
               className="space-y-5"
             >
               {step === 0 && <StepIdentity {...props} />}
-              {step === 1 && <StepContact {...props} />}
-              {step === 2 && <StepSecurity {...props} />}
+              {step === 1 && <StepSecurity {...props} />}
             </form>
           </motion.div>
         </motion.div>
@@ -160,20 +157,7 @@ const SignupStepScreen = (props: SignupStepScreenProps) => {
 
 /* --- Step sub-components --- */
 
-const StepIdentity = (p: SignupStepScreenProps) => (
-  <div className="space-y-4">
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-firstname">Prénom *</Label>
-      <Input id="fs-firstname" placeholder="Votre prénom" value={p.firstName} onChange={e => p.setFirstName(e.target.value)} required className="h-12 text-base" />
-    </div>
-    <div className="space-y-1.5">
-      <Label htmlFor="fs-lastname">Nom *</Label>
-      <Input id="fs-lastname" placeholder="Votre nom" value={p.lastName} onChange={e => p.setLastName(e.target.value)} required className="h-12 text-base" />
-    </div>
-  </div>
-);
-
-const StepContact = (p: SignupStepScreenProps) => {
+const StepIdentity = (p: SignupStepScreenProps) => {
   const [emailHint, setEmailHint] = useState<EmailValidation | null>(null);
 
   const handleEmailChange = (value: string) => {
@@ -197,6 +181,14 @@ const StepContact = (p: SignupStepScreenProps) => {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="fs-firstname">Prénom *</Label>
+        <Input id="fs-firstname" placeholder="Votre prénom" value={p.firstName} onChange={e => p.setFirstName(e.target.value)} required className="h-12 text-base" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="fs-lastname">Nom *</Label>
+        <Input id="fs-lastname" placeholder="Votre nom" value={p.lastName} onChange={e => p.setLastName(e.target.value)} required className="h-12 text-base" />
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="fs-email">Email *</Label>
         <Input
@@ -223,10 +215,6 @@ const StepContact = (p: SignupStepScreenProps) => {
       <div className="space-y-1.5">
         <Label htmlFor="fs-birth">Date de naissance <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
         <Input id="fs-birth" type="date" value={p.birthdate} onChange={e => p.setBirthdate(e.target.value)} className="h-12 text-base" />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="fs-loc">Pays / Ville <span className="text-muted-foreground text-xs">(optionnel)</span></Label>
-        <Input id="fs-loc" placeholder="Paris, France" value={p.location} onChange={e => p.setLocation(e.target.value)} className="h-12 text-base" />
       </div>
     </div>
   );
