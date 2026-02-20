@@ -24,7 +24,7 @@ const Auth = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  // null = login page, 0-2 = onboarding, 3 = splash, 4-6 = signup steps (3 steps simplified)
+  // null = login page, 0-2 = onboarding, 3 = splash, 4-5 = signup steps (2 steps)
   // Visitors start at onboarding step 0 by default
   const [onboardingStep, setOnboardingStep] = useState<number | null>(0);
   const [email, setEmail] = useState("");
@@ -33,7 +33,6 @@ const Auth = () => {
   const [lastName, setLastName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [birthdate, setBirthdate] = useState("");
-  const [location, setLocation] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
 
   useEffect(() => {
@@ -89,7 +88,6 @@ const Auth = () => {
           last_name: lastName || null,
           display_name: displayName || null,
           birthdate: birthdate || null,
-          location: location || null,
         }).eq("id", data.user.id);
         toast({ title: "Inscription réussie 📧", description: "Un email de confirmation a été envoyé." });
         setOnboardingStep(null); // back to login
@@ -157,20 +155,20 @@ const Auth = () => {
   if (onboardingStep === 2) return <OnboardingPromo onBack={() => setOnboardingStep(1)} onNext={() => setOnboardingStep(3)} />;
   if (onboardingStep === 3) return <OnboardingSignupSplash onBack={() => setOnboardingStep(2)} onNext={() => setOnboardingStep(4)} />;
 
-  // Signup steps (4-6 map to step 0-2, 3 steps total)
-  if (onboardingStep !== null && onboardingStep >= 4 && onboardingStep <= 6) {
+  // Signup steps (4-5 map to step 0-1, 2 steps total)
+  if (onboardingStep !== null && onboardingStep >= 4 && onboardingStep <= 5) {
     const signupStep = onboardingStep - 4;
     const sharedProps = {
       firstName, setFirstName,
       lastName, setLastName,
       email, setEmail,
       birthdate, setBirthdate,
-      location, setLocation,
+      location: "", setLocation: () => {},
       password, setPassword,
       confirmPassword, setConfirmPassword,
       errors, setErrors,
       loading,
-      totalDots: 7,
+      totalDots: 6,
       currentDot: onboardingStep,
     };
     return (
