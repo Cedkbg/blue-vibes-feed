@@ -128,16 +128,6 @@ export const VideoWatermark = ({
 
   return (
     <>
-      {/* Progress bar - thin line at bottom */}
-      <div className="absolute bottom-16 left-0 right-0 z-20 px-0">
-        <div className="h-[2px] bg-white/20 w-full">
-          <motion.div 
-            className="h-full bg-white"
-            style={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.1, ease: "linear" }}
-          />
-        </div>
-      </div>
 
       {/* Intro animation - Logo at bottom-left, then moves to right with floating effect */}
       <AnimatePresence>
