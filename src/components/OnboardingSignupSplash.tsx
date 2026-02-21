@@ -6,9 +6,10 @@ import OnboardingDots from "./OnboardingDots";
 interface OnboardingSignupSplashProps {
   onNext: () => void;
   onBack: () => void;
+  onLogin?: () => void;
 }
 
-const OnboardingSignupSplash = ({ onNext, onBack }: OnboardingSignupSplashProps) => {
+const OnboardingSignupSplash = ({ onNext, onBack, onLogin }: OnboardingSignupSplashProps) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-primary/10 p-6 overflow-hidden">
       <div className="flex flex-col items-center gap-8 flex-1 justify-center">
@@ -65,6 +66,11 @@ const OnboardingSignupSplash = ({ onNext, onBack }: OnboardingSignupSplashProps)
             Commencer
           </Button>
         </div>
+        {onLogin && (
+          <Button variant="link" className="text-muted-foreground" onClick={onLogin}>
+            J'ai déjà un compte
+          </Button>
+        )}
         <OnboardingDots total={8} current={3} />
       </motion.div>
     </div>
