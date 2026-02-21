@@ -110,7 +110,7 @@ const Index = () => {
   }, []);
 
   return (
-    <DesktopLayout showStories showRightSidebar>
+    <DesktopLayout showStories={false} showRightSidebar>
       <main className="px-4 py-4">
         {/* Follow Requests for private accounts */}
         <FollowRequestsSection />
@@ -164,16 +164,6 @@ const Index = () => {
       {/* Floating action buttons - mobile only */}
       {isMobile && (
         <div className="fixed bottom-24 right-4 flex flex-col gap-3 z-50">
-          {user && (
-            <Button
-              size="icon"
-              variant="outline"
-              className="w-14 h-14 rounded-full shadow-lg bg-card border-primary/20 hover:bg-primary hover:text-primary-foreground"
-              onClick={() => setShowStartLive(true)}
-            >
-              <Radio className="w-6 h-6" />
-            </Button>
-          )}
           <Button
             size="icon"
             className="w-14 h-14 rounded-full shadow-lg gradient-primary"

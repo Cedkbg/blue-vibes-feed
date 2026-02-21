@@ -249,25 +249,6 @@ const Discover = () => {
           <h1 className="text-2xl font-bold">Découvrir</h1>
         </div>
 
-        {/* Pubb Banner */}
-        <Card
-          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] mb-4"
-          onClick={() => navigate("/pubb")}
-        >
-          <CardContent className="p-0">
-            <div className="bg-gradient-to-r from-primary to-accent p-5 flex items-center gap-4">
-              <div className="bg-white/20 rounded-xl p-3">
-                <Megaphone className="w-8 h-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-white text-lg">Pubb</h3>
-                <p className="text-white/80 text-sm">Publicités & Promotions</p>
-              </div>
-              <Badge className="bg-white/20 text-white border-none">Nouveau</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
         <div className="grid grid-cols-2 gap-3">
           {categories.map(cat => (
             <Card

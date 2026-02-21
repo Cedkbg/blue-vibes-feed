@@ -303,8 +303,8 @@ const Pubb = () => {
                       )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {ad.views_count}</span>
-                          <span className="flex items-center gap-1"><MousePointerClick className="w-3 h-3" /> {ad.clicks_count}</span>
+                          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {ad.views_count} vue{ad.views_count !== 1 ? "s" : ""}</span>
+                          <span className="flex items-center gap-1"><MousePointerClick className="w-3 h-3" /> {ad.clicks_count} clic{ad.clicks_count !== 1 ? "s" : ""}</span>
                         </div>
                         {ad.link_url && (
                           <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleAdClick(ad)}>

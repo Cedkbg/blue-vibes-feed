@@ -258,14 +258,6 @@ const Profile = () => {
               >
                 <Settings className="w-5 h-5" />
               </Button>
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-5 h-5" />
-              </Button>
             </>
           )}
         </div>
@@ -295,7 +287,7 @@ const Profile = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-2 mb-6">
+        <div className="grid grid-cols-3 gap-2 mb-6">
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"
             onClick={() => setShowLikers(true)}
@@ -305,20 +297,6 @@ const Profile = () => {
               {totalLikes}
             </div>
             <div className="text-xs text-muted-foreground">J'aime</div>
-          </div>
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-xl font-bold flex items-center justify-center gap-1">
-              <Eye className="w-4 h-4 text-primary" />
-              {totalViews}
-            </div>
-            <div className="text-xs text-muted-foreground">Vues</div>
-          </div>
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-xl font-bold flex items-center justify-center gap-1">
-              <MessageCircle className="w-4 h-4 text-primary" />
-              {totalComments}
-            </div>
-            <div className="text-xs text-muted-foreground">Comm.</div>
           </div>
           <div
             className="text-center p-3 bg-card rounded-xl cursor-pointer hover:bg-accent/50 transition-colors"

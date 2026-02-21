@@ -432,43 +432,8 @@ const Friends = () => {
     <DesktopLayout showRightSidebar={false}>
 
       <div className="px-4 py-4 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-accent p-6 mb-6 shadow-glow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-foreground/10 rounded-full blur-2xl"></div>
-
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary-foreground/20 rounded-xl backdrop-blur-sm">
-                <Users className="w-8 h-8 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-primary-foreground">
-                  Amis
-                </h1>
-                <p className="text-primary-foreground/80 text-sm">
-                  Découvrez et connectez
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowStartLive(true)}
-              className="gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground backdrop-blur-sm border border-primary-foreground/20"
-            >
-              <Radio className="w-4 h-4 animate-pulse" />
-              Go Live
-            </Button>
-          </div>
-        </div>
-
         {/* Stories Section */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              Statuts
-            </h2>
-          </div>
           <StoriesCarousel />
         </div>
 
@@ -533,20 +498,13 @@ const Friends = () => {
         )}
 
         <Tabs defaultValue="trending" className="w-full">
-          <TabsList className="w-full mb-6 bg-card border border-border p-1 rounded-xl grid grid-cols-5">
+          <TabsList className="w-full mb-6 bg-card border border-border p-1 rounded-xl grid grid-cols-4">
             <TabsTrigger
               value="trending"
               className="gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg transition-smooth"
             >
               <TrendingUp className="w-3 h-3" />
               Tendances
-            </TabsTrigger>
-            <TabsTrigger
-              value="verified"
-              className="gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg transition-smooth"
-            >
-              <BadgeCheck className="w-3 h-3" />
-              Certifiés
             </TabsTrigger>
             <TabsTrigger
               value="channels"
@@ -587,24 +545,6 @@ const Friends = () => {
             )}
           </TabsContent>
 
-          {/* Verified Tab */}
-          <TabsContent value="verified" className="space-y-2 animate-in fade-in-50">
-            <div className="flex items-center gap-2 mb-4">
-              <BadgeCheck className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">Comptes certifiés</h2>
-            </div>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : verifiedAccounts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Aucun compte certifié</p>
-            ) : (
-              verifiedAccounts.map((profile) => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))
-            )}
-          </TabsContent>
 
           {/* Channels Tab */}
           <TabsContent value="channels" className="space-y-4 animate-in fade-in-50">
@@ -830,11 +770,6 @@ const Friends = () => {
         </Tabs>
       </div>
 
-      <StartLiveModal
-        open={showStartLive}
-        onOpenChange={setShowStartLive}
-        onStreamStarted={(id) => navigate(`/live/${id}`)}
-      />
 
     </DesktopLayout>
   );
