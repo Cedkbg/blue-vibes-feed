@@ -10,6 +10,7 @@ import {
   ArrowLeft, Phone
 } from "lucide-react";
 import { toast } from "sonner";
+import { startOutgoingCallSound, stopOutgoingCallSound, playCallConnectedSound, playCallEndedSound } from "@/utils/sounds";
 
 interface Contact {
   id: string;
@@ -52,10 +53,14 @@ const VideoCall = () => {
     callType,
     isIncoming,
     onCallEnded: () => {
+      stopOutgoingCallSound();
+      playCallEndedSound();
       toast.success("Appel terminé");
       setTimeout(() => navigate(-1), 500);
     },
     onCallConnected: () => {
+      stopOutgoingCallSound();
+      playCallConnectedSound();
       toast.success("Appel connecté");
     },
   });
@@ -88,6 +93,7 @@ const VideoCall = () => {
       if (isIncoming) {
         answerIncoming();
       } else {
+        startOutgoingCallSound();
         startCall();
       }
     }
