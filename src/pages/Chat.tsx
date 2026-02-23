@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { EmojiPicker } from "@/components/EmojiPicker";
+import { playMessageSentSound, playMessageReceivedSound } from "@/utils/sounds";
 import { ContactSettingsSheet } from "@/components/ContactSettingsSheet";
 
 interface Message {
@@ -153,6 +154,7 @@ const Chat = () => {
             }
             setMessages((prev) => [...prev, { ...newMsg, reply_to: replyMessage }]);
             if (newMsg.sender_id === recipientId) {
+              playMessageReceivedSound();
               supabase.from("messages").update({ is_read: true }).eq("id", newMsg.id);
             }
           }
@@ -209,6 +211,7 @@ const Chat = () => {
     const { error } = await supabase.from("messages").insert(messageData);
 
     if (!error) {
+      playMessageSentSound();
       setNewMessage("");
       setReplyTo(null);
       const [user1, user2] = [user.id, recipientId].sort();
