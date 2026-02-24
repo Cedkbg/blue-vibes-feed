@@ -31,6 +31,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Trending from "./pages/Trending";
 import PostDetail from "./pages/PostDetail";
 import UserProfile from "./pages/UserProfile";
+import Certified from "./pages/Certified";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
 
@@ -66,6 +67,7 @@ const AppContent = () => {
         <Route path="/channel/:channelId" element={<ProtectedRoute><ChannelDetails /></ProtectedRoute>} />
         
         <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
+        <Route path="/certified" element={<ProtectedRoute><Certified /></ProtectedRoute>} />
         {/* Public shareable routes – no auth required */}
         <Route path="/p/:postId" element={<PostDetail />} />
         <Route path="/u/:username" element={<UserProfile />} />

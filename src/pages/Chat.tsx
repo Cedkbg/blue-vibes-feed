@@ -467,7 +467,9 @@ const Chat = () => {
       />
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 flex flex-col-reverse" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1" />
+        <div className="space-y-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -527,6 +529,7 @@ const Chat = () => {
           })
         )}
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Reply preview bar */}
