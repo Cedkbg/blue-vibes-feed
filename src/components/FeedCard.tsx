@@ -213,132 +213,80 @@ export const FeedCard = ({
     <>
       <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4">
         {hasImage ? (
-          /* Media Container - Adaptive sizing */
-          <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '70vh' }}>
-            {isVideo ? (
-              <video
-                src={image}
-                className="w-full h-auto max-h-[70vh] object-contain"
-                controls
-                playsInline
-                muted
-                loop
-              />
-            ) : (
-              <img 
-                src={image} 
-                alt={caption}
-                className="w-full h-auto max-h-[70vh] object-contain"
-              />
-            )}
-            
-            {/* User Info Overlay */}
-            <div className="absolute bottom-0 left-0 right-16 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-16">
-              {source && (
-                <button 
-                  onClick={handleSourceClick}
-                  className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full mb-2 hover:bg-white/30 transition-colors"
-                >
-                  {getSourceIcon()}
-                  <span>{source.name}</span>
+          <>
+            {/* Facebook-style: user header + caption above image */}
+            <div className="p-4 pb-2">
+              <div className="flex items-center gap-3 mb-2">
+                <button onClick={handleProfileClick}>
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="bg-primary/10 text-primary">{user.name[0]}</AvatarFallback>
+                  </Avatar>
                 </button>
-              )}
-              <button onClick={handleProfileClick} className="flex items-baseline gap-2 text-left">
-                <h3 className="text-white font-bold text-xl hover:underline">
-                  {user.name}{user.age ? `, ${user.age}` : ""}
-                </h3>
-              </button>
-              {(user.profession || user.location) && (
-                <div className="flex items-center gap-2 mt-1 text-white/90 text-sm">
-                  {user.profession && (
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="w-3.5 h-3.5" />
-                      {user.profession}
-                    </span>
-                  )}
-                  {user.profession && user.location && <span>-</span>}
-                  {user.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {user.location}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons - Right Side */}
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-              {/* Avatar */}
-              <button onClick={handleProfileClick} className="transition-transform active:scale-90">
-                <Avatar className="w-10 h-10 ring-2 ring-white/60 shadow-md">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name[0]}</AvatarFallback>
-                </Avatar>
-              </button>
-
-              {/* Like */}
-              <button 
-                onClick={toggleLike}
-                disabled={likesLoading}
-                className="flex flex-col items-center gap-1 transition-transform active:scale-90 disabled:opacity-50"
-              >
-                <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md shadow-md border border-white/10 transition-colors",
-                  isLiked ? "bg-primary" : "bg-black/30"
-                )}>
-                  <Heart 
-                    className={cn(
-                      "w-5 h-5 transition-all",
-                      isLiked ? "fill-white text-white" : "text-white"
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleProfileClick} className="font-semibold text-sm hover:underline truncate">
+                      {user.name}
+                    </button>
+                    {source && (
+                      <button onClick={handleSourceClick} className="inline-flex items-center gap-1 text-primary text-xs hover:underline">
+                        {getSourceIcon()} {source.name}
+                      </button>
                     )}
-                  />
-                </div>
-                <span className="text-white text-xs font-semibold drop-shadow-md">
-                  {formatCount(likesCount)}
-                </span>
-              </button>
-
-              {/* Comments */}
-              <CommentsButton 
-                count={commentsCount} 
-                onClick={() => setCommentsOpen(true)} 
-                variant="overlay"
-              />
-
-              {/* Share */}
-              <button 
-                onClick={() => setIsShareOpen(true)}
-                className="flex flex-col items-center gap-1 transition-transform active:scale-90"
-              >
-                <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md shadow-md border border-white/10 flex items-center justify-center hover:bg-black/40 transition-colors">
-                  <Share2 className="w-5 h-5 text-white" />
-                </div>
-              </button>
-
-              {/* More */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="transition-transform active:scale-90">
-                    <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-md shadow-md border border-white/10 flex items-center justify-center hover:bg-black/40 transition-colors">
-                      <MoreHorizontal className="w-5 h-5 text-white" />
+                  </div>
+                  {(user.profession || user.location) && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {user.profession && <span className="flex items-center gap-0.5"><Briefcase className="w-3 h-3" />{user.profession}</span>}
+                      {user.profession && user.location && <span>·</span>}
+                      {user.location && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{user.location}</span>}
                     </div>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => copyToClipboard(`${window.location.origin}/post/${id}`)}>
-                    Copier le lien
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Signalement envoyé")}>
-                    Signaler
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info("Publication masquée")}>
-                    Masquer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  )}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button><MoreHorizontal className="w-5 h-5 text-muted-foreground" /></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => copyToClipboard(`${window.location.origin}/post/${id}`)}>Copier le lien</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.info("Signalement envoyé")}>Signaler</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.info("Publication masquée")}>Masquer</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              {/* Caption above image */}
+              {caption && (
+                <div className="mb-2">
+                  <HashtagText text={displayCaption} className="text-foreground text-sm" />
+                  {shouldTruncate && (
+                    <button onClick={() => setIsExpanded(!isExpanded)} className="text-primary text-xs font-medium ml-1">
+                      {isExpanded ? "Voir moins" : "Lire plus..."}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+
+            {/* Media */}
+            <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '70vh' }}>
+              {isVideo ? (
+                <video src={image} className="w-full h-auto max-h-[70vh] object-contain" controls playsInline muted loop />
+              ) : (
+                <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" />
+              )}
+            </div>
+
+            {/* Action bar below image */}
+            <div className="px-4 py-2 flex items-center gap-4">
+              <button onClick={toggleLike} disabled={likesLoading} className="flex items-center gap-1.5 transition-transform active:scale-90 disabled:opacity-50">
+                <Heart className={cn("w-5 h-5", isLiked ? "fill-primary text-primary" : "text-muted-foreground")} />
+                <span className="text-sm text-muted-foreground">{formatCount(likesCount)}</span>
+              </button>
+              <CommentsButton count={commentsCount} onClick={() => setCommentsOpen(true)} variant="inline" />
+              <button onClick={() => setIsShareOpen(true)}>
+                <Share2 className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
+              </button>
+            </div>
+          </>
         ) : (
           /* Text-only post */
           <div className="p-4">
@@ -446,20 +394,7 @@ export const FeedCard = ({
           </div>
         )}
 
-        {hasImage && (
-          <div 
-            className="px-3 py-3 flex items-center gap-3 cursor-pointer"
-            onClick={() => setCommentsOpen(true)}
-          >
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={user.avatar} />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground">
-              Ajouter un commentaire...
-            </div>
-          </div>
-        )}
+        {/* Comment input area for image posts */}
       </div>
 
       {/* Comments Sheet */}

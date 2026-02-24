@@ -11,17 +11,36 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateContactGroupModal } from "@/components/CreateContactGroupModal";
 import { EditContactGroupModal } from "@/components/EditContactGroupModal";
+import { StartLiveModal } from "@/components/StartLiveModal";
 import { 
   Phone, Video, PhoneIncoming, PhoneOutgoing, PhoneMissed, 
-  Clock, ArrowUpRight, ArrowDownLeft, Plus, Users, MoreVertical, Trash2, Pencil
+  Clock, ArrowUpRight, ArrowDownLeft, Plus, Users, MoreVertical, Trash2, Pencil,
+  Search, Radio, UserPlus
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+
+interface ContactProfile {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  is_online?: boolean;
+}
 
 const Calls = () => {
   const { user } = useAuth();
@@ -31,20 +50,37 @@ const Calls = () => {
   const [filter, setFilter] = useState<"all" | "missed">("all");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [editingGroup, setEditingGroup] = useState<{ id: string; name: string } | null>(null);
+  const [showContacts, setShowContacts] = useState(false);
+  const [contacts, setContacts] = useState<ContactProfile[]>([]);
+  const [contactSearch, setContactSearch] = useState("");
+  const [showStartLive, setShowStartLive] = useState(false);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles_public")
+        .select("id, display_name, username, avatar_url, is_online")
+        .neq("id", user.id)
+        .limit(100);
+      if (data) setContacts(data);
+    };
+    fetchContacts();
+  }, [user]);
 
   const filteredCalls = filter === "missed"
     ? callHistory.filter((call) => call.status === "missed")
     : callHistory;
 
+  const filteredContacts = contacts.filter((c) => {
+    const name = c.display_name || c.username || "";
+    return name.toLowerCase().includes(contactSearch.toLowerCase());
+  });
+
   const getCallIcon = (call: CallRecord) => {
     const isOutgoing = call.caller_id === user?.id;
-    
-    if (call.status === "missed") {
-      return <PhoneMissed className="w-4 h-4 text-destructive" />;
-    }
-    if (isOutgoing) {
-      return <ArrowUpRight className="w-4 h-4 text-green-500" />;
-    }
+    if (call.status === "missed") return <PhoneMissed className="w-4 h-4 text-destructive" />;
+    if (isOutgoing) return <ArrowUpRight className="w-4 h-4 text-green-500" />;
     return <ArrowDownLeft className="w-4 h-4 text-primary" />;
   };
 
@@ -58,256 +94,271 @@ const Calls = () => {
     };
   };
 
-  const handleCall = (contactId: string, type: "video" | "audio") => {
-    navigate(`/call/${contactId}?type=${type}`);
-  };
-
-  const CallItem = ({ call }: { call: CallRecord }) => {
-    const contact = getContactInfo(call);
-    const isOutgoing = call.caller_id === user?.id;
-
-    return (
-      <div className="flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors rounded-xl">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={contact.avatar || ""} />
-          <AvatarFallback>{contact.name[0]?.toUpperCase()}</AvatarFallback>
-        </Avatar>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{contact.name}</span>
-            {getCallIcon(call)}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {call.call_type === "video" ? (
-              <Video className="w-3 h-3" />
-            ) : (
-              <Phone className="w-3 h-3" />
-            )}
-            <span>
-              {isOutgoing ? "Sortant" : "Entrant"} • {format(new Date(call.started_at), "dd MMM, HH:mm", { locale: fr })}
-            </span>
-          </div>
-          {call.duration_seconds > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-              <Clock className="w-3 h-3" />
-              {formatDuration(call.duration_seconds)}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => handleCall(contact.id, "audio")}
-            className="rounded-full"
-          >
-            <Phone className="w-4 h-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => handleCall(contact.id, "video")}
-            className="rounded-full"
-          >
-            <Video className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const GroupItem = ({ group }: { group: any }) => {
-    return (
-      <div className="flex items-center gap-3 p-4 hover:bg-accent/50 transition-colors rounded-xl">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Users className="w-6 h-6 text-primary" />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <span className="font-medium truncate block">{group.name}</span>
-          <span className="text-sm text-muted-foreground">
-            {group.members_count || 0} membre{(group.members_count || 0) > 1 ? "s" : ""}
-          </span>
-        </div>
-
-        <div className="flex gap-2 items-center">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => navigate(`/group-call/${group.id}?type=audio`)}
-            className="rounded-full"
-          >
-            <Phone className="w-4 h-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => navigate(`/group-call/${group.id}?type=video`)}
-            className="rounded-full"
-          >
-            <Video className="w-4 h-4" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="rounded-full">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem 
-                onClick={() => setEditingGroup({ id: group.id, name: group.name })}
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Modifier
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => deleteGroup(group.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    );
-  };
-
-  const SkeletonItem = () => (
-    <div className="flex items-center gap-3 p-4">
-      <Skeleton className="w-12 h-12 rounded-full" />
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-3 w-48" />
-      </div>
-      <div className="flex gap-2">
-        <Skeleton className="w-10 h-10 rounded-full" />
-        <Skeleton className="w-10 h-10 rounded-full" />
-      </div>
-    </div>
-  );
-
   return (
-    <DesktopLayout showRightSidebar={false}>
-
-      <div className="px-4 py-4 max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-accent p-6 mb-6 shadow-glow">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-foreground/10 rounded-full blur-2xl" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="p-3 bg-primary-foreground/20 rounded-xl backdrop-blur-sm">
-              <Phone className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">
-                Appels
-              </h1>
-              <p className="text-primary-foreground/80 text-sm">
-                Historique et groupes d'appels
-              </p>
-            </div>
+    <DesktopLayout showRightSidebar={false} showTopBar={false}>
+      {/* WhatsApp-style header */}
+      <header className="bg-primary text-primary-foreground px-6 py-4">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold">Appels</h1>
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setShowStartLive(true)}
+            >
+              <Radio className="w-5 h-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => setShowContacts(true)}
+            >
+              <UserPlus className="w-5 h-5" />
+            </Button>
           </div>
         </div>
+      </header>
 
-        {/* Tabs */}
-        <Tabs defaultValue="history" className="mb-4">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="history" className="flex-1">
-              Historique
-            </TabsTrigger>
-            <TabsTrigger value="groups" className="flex-1">
-              Groupes
-            </TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <Tabs defaultValue="history" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 rounded-none border-b bg-background">
+          <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+            Récents
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+            Groupes
+          </TabsTrigger>
+        </TabsList>
 
-          {/* History Tab */}
-          <TabsContent value="history" className="mt-4">
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as "all" | "missed")}>
-              <TabsList className="w-full mb-4">
-                <TabsTrigger value="all" className="flex-1">
-                  Tous
-                </TabsTrigger>
-                <TabsTrigger value="missed" className="flex-1">
-                  Manqués
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+        {/* History Tab */}
+        <TabsContent value="history" className="mt-0">
+          {/* Sub-filter */}
+          <div className="flex gap-2 px-4 py-3">
+            <Button
+              size="sm"
+              variant={filter === "all" ? "default" : "outline"}
+              className="rounded-full text-xs h-8"
+              onClick={() => setFilter("all")}
+            >
+              Tous
+            </Button>
+            <Button
+              size="sm"
+              variant={filter === "missed" ? "default" : "outline"}
+              className="rounded-full text-xs h-8"
+              onClick={() => setFilter("missed")}
+            >
+              Manqués
+            </Button>
+          </div>
 
-            <div className="space-y-2">
-              {loading ? (
-                <>
-                  <SkeletonItem />
-                  <SkeletonItem />
-                  <SkeletonItem />
-                </>
-              ) : filteredCalls.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                    <Phone className="w-8 h-8 text-muted-foreground" />
+          <div className="divide-y divide-border">
+            {loading ? (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-6 py-3">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
                   </div>
-                  <h3 className="font-medium text-foreground mb-1">
-                    {filter === "missed" ? "Aucun appel manqué" : "Aucun appel"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Votre historique d'appels apparaîtra ici
-                  </p>
-                </div>
-              ) : (
-                filteredCalls.map((call) => (
-                  <CallItem key={call.id} call={call} />
-                ))
-              )}
-            </div>
-          </TabsContent>
+                ))}
+              </>
+            ) : filteredCalls.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Phone className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">{filter === "missed" ? "Aucun appel manqué" : "Aucun appel récent"}</p>
+                <p className="text-sm mt-1">Appuyez sur le bouton ci-dessus pour appeler</p>
+              </div>
+            ) : (
+              filteredCalls.map((call) => {
+                const contact = getContactInfo(call);
+                const isOutgoing = call.caller_id === user?.id;
+                return (
+                  <button
+                    key={call.id}
+                    className="w-full flex items-center gap-4 px-6 py-3 hover:bg-muted/50 transition-colors text-left"
+                    onClick={() => navigate(`/call/${contact.id}?type=${call.call_type}`)}
+                  >
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={contact.avatar || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary">{contact.name[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-medium truncate ${call.status === "missed" ? "text-destructive" : ""}`}>
+                        {contact.name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        {getCallIcon(call)}
+                        <span>{isOutgoing ? "Sortant" : "Entrant"}</span>
+                        <span>·</span>
+                        <span>{format(new Date(call.started_at), "dd MMM, HH:mm", { locale: fr })}</span>
+                        {call.duration_seconds > 0 && (
+                          <>
+                            <span>·</span>
+                            <span>{formatDuration(call.duration_seconds)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {call.call_type === "video" ? (
+                      <Video className="w-5 h-5 text-primary flex-shrink-0" />
+                    ) : (
+                      <Phone className="w-5 h-5 text-primary flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
 
-          {/* Groups Tab */}
-          <TabsContent value="groups" className="mt-4">
-            <Button 
+        {/* Groups Tab */}
+        <TabsContent value="groups" className="mt-0">
+          <div className="px-4 py-3">
+            <Button
               onClick={() => setShowCreateGroup(true)}
-              className="w-full mb-4 rounded-xl gap-2"
+              className="w-full rounded-xl gap-2"
+              variant="outline"
             >
               <Plus className="w-4 h-4" />
               Créer un groupe d'appel
             </Button>
+          </div>
 
-            <div className="space-y-2">
-              {groupsLoading ? (
-                <>
-                  <SkeletonItem />
-                  <SkeletonItem />
-                </>
-              ) : groups.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                    <Users className="w-8 h-8 text-muted-foreground" />
+          <div className="divide-y divide-border">
+            {groupsLoading ? (
+              <>
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3 px-6 py-3">
+                    <Skeleton className="w-12 h-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
                   </div>
-                  <h3 className="font-medium text-foreground mb-1">
-                    Aucun groupe
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Créez un groupe pour passer des appels de groupe
-                  </p>
+                ))}
+              </>
+            ) : groups.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">Aucun groupe</p>
+                <p className="text-sm mt-1">Créez un groupe pour des appels de groupe</p>
+              </div>
+            ) : (
+              groups.map((group: any) => (
+                <div key={group.id} className="flex items-center gap-4 px-6 py-3 hover:bg-muted/50 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{group.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {group.members_count || 0} membre{(group.members_count || 0) > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => navigate(`/group-call/${group.id}?type=audio`)} className="h-9 w-9">
+                      <Phone className="w-4 h-4 text-primary" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => navigate(`/group-call/${group.id}?type=video`)} className="h-9 w-9">
+                      <Video className="w-4 h-4 text-primary" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-9 w-9">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditingGroup({ id: group.id, name: group.name })}>
+                          <Pencil className="w-4 h-4 mr-2" /> Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => deleteGroup(group.id)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-              ) : (
-                groups.map((group) => (
-                  <GroupItem key={group.id} group={group} />
-                ))
-              )}
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* FAB for new call */}
+      <Button
+        size="icon"
+        className="fixed bottom-24 right-4 w-14 h-14 rounded-full shadow-lg z-50"
+        onClick={() => setShowContacts(true)}
+      >
+        <Phone className="w-6 h-6" />
+      </Button>
+
+      {/* Contact picker sheet */}
+      <Sheet open={showContacts} onOpenChange={setShowContacts}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
+          <SheetHeader>
+            <SheetTitle>Sélectionner un contact</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un contact..."
+                value={contactSearch}
+                onChange={(e) => setContactSearch(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+            <div className="space-y-1 max-h-[65vh] overflow-y-auto">
+              {filteredContacts.map((contact) => (
+                <div key={contact.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors">
+                  <div className="relative">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={contact.avatar_url || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {(contact.display_name || contact.username || "?")?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {contact.is_online && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{contact.display_name || contact.username || "Utilisateur"}</h3>
+                    {contact.username && <p className="text-xs text-muted-foreground">@{contact.username}</p>}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9"
+                      onClick={() => { setShowContacts(false); navigate(`/call/${contact.id}?type=audio`); }}
+                    >
+                      <Phone className="w-4 h-4 text-primary" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9"
+                      onClick={() => { setShowContacts(false); navigate(`/call/${contact.id}?type=video`); }}
+                    >
+                      <Video className="w-4 h-4 text-primary" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      <CreateContactGroupModal
-        open={showCreateGroup}
-        onOpenChange={setShowCreateGroup}
-      />
-
+      <CreateContactGroupModal open={showCreateGroup} onOpenChange={setShowCreateGroup} />
       {editingGroup && (
         <EditContactGroupModal
           open={!!editingGroup}
@@ -317,7 +368,11 @@ const Calls = () => {
           onGroupUpdated={() => setEditingGroup(null)}
         />
       )}
-
+      <StartLiveModal
+        open={showStartLive}
+        onOpenChange={setShowStartLive}
+        onStreamStarted={(id) => navigate(`/live/${id}`)}
+      />
     </DesktopLayout>
   );
 };

@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Radio } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedCard } from "@/components/FeedCard";
-import { StartLiveModal } from "@/components/StartLiveModal";
 import { DesktopLayout } from "@/components/DesktopLayout";
 import { FollowRequestsSection } from "@/components/FollowRequestsSection";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,7 +44,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [showStartLive, setShowStartLive] = useState(false);
+  
 
   usePresence(user?.id);
 
@@ -161,9 +160,9 @@ const Index = () => {
         )}
       </main>
 
-      {/* Floating action buttons - mobile only */}
+      {/* Floating action button - mobile only */}
       {isMobile && (
-        <div className="fixed bottom-24 right-4 flex flex-col gap-3 z-50">
+        <div className="fixed bottom-24 right-4 z-50">
           <Button
             size="icon"
             className="w-14 h-14 rounded-full shadow-lg gradient-primary"
@@ -173,12 +172,6 @@ const Index = () => {
           </Button>
         </div>
       )}
-
-      <StartLiveModal
-        open={showStartLive}
-        onOpenChange={setShowStartLive}
-        onStreamStarted={(id) => navigate(`/live/${id}`)}
-      />
     </DesktopLayout>
   );
 };
