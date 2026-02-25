@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, X, CornerDownRight } from "lucide-react";
+import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, CornerDownRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -303,14 +303,9 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0 flex flex-col">
         <SheetHeader className="px-4 py-4 border-b shrink-0">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-bold">
-              {comments.length} Commentaire{comments.length !== 1 ? "s" : ""}
-            </SheetTitle>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+          <SheetTitle className="text-lg font-bold text-center">
+            {comments.length} Commentaire{comments.length !== 1 ? "s" : ""}
+          </SheetTitle>
         </SheetHeader>
 
         {/* Comments List */}

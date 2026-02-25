@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Clapperboard, Trophy, Swords, Gamepad2, Coffee, Laugh, Shirt, Newspaper,
-  ArrowLeft, Heart, MessageCircle, Play, TrendingUp, Megaphone
+  ArrowLeft, Heart, MessageCircle, Play
 } from "lucide-react";
 
 interface Post {
@@ -119,7 +119,7 @@ const Discover = () => {
       .from("posts")
       .select("id, caption, media_url, media_type, likes_count, comments_count, created_at, user_id")
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(80);
 
     if (!error && data) {
       // Fetch profiles for posts
@@ -137,13 +137,6 @@ const Discover = () => {
 
   useEffect(() => {
     fetchPosts();
-
-    const channel = supabase
-      .channel("discover-posts-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => fetchPosts())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filteredPosts = useMemo(() => {
@@ -241,13 +234,9 @@ const Discover = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 pt-16">
-      <TopBar />
-      <main className="max-w-2xl mx-auto px-4 py-4">
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">Découvrir</h1>
-        </div>
+    <div className="min-h-screen bg-background pb-20 pt-14">
+      <TopBar title="Découvrir" />
+      <main className="max-w-2xl mx-auto px-3 py-3">
 
         <div className="grid grid-cols-2 gap-3">
           {categories.map(cat => (

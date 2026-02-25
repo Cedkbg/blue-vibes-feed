@@ -101,11 +101,15 @@ const Index = () => {
   useEffect(() => { fetchPosts(); }, []);
 
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout>;
     const channel = supabase
       .channel("posts-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, () => fetchPosts())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchPosts(), 2000);
+      })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearTimeout(debounceTimer); supabase.removeChannel(channel); };
   }, []);
 
   return (
