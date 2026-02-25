@@ -227,9 +227,10 @@ const Video = () => {
       {/* Discover button */}
       <button
         onClick={() => setIsDiscoverOpen(true)}
-        className="fixed top-20 left-3 z-40 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+        className="fixed top-20 left-3 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all animate-pulse hover:animate-none font-semibold text-sm"
       >
         <Compass className="w-5 h-5" />
+        <span>Découvrir</span>
       </button>
 
       {/* Discover Sidebar */}
