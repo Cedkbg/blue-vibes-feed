@@ -1,11 +1,12 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image, Video, Send, X } from "lucide-react";
+import { ArrowLeft, Image, Video, Send, X, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAI } from "@/hooks/useAI";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -17,6 +18,18 @@ const CreatePost = () => {
   const [mediaType, setMediaType] = useState<"image" | "video" | "text">("text");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const { generateCaption, improveText, isLoading: aiLoading } = useAI();
+
+  const handleGenerateCaption = async () => {
+    const result = await generateCaption(caption || undefined);
+    if (result) setCaption(result);
+  };
+
+  const handleImproveCaption = async () => {
+    if (!caption.trim()) return;
+    const result = await improveText(caption);
+    if (result) setCaption(result);
+  };
 
   const handleFileSelect = (file: File, type: "image" | "video") => {
     if (file.size > 50 * 1024 * 1024) {
@@ -164,6 +177,35 @@ const CreatePost = () => {
             onChange={(e) => setCaption(e.target.value)}
             className="min-h-[150px] text-lg resize-none border-0 focus-visible:ring-0 bg-transparent"
           />
+          {/* AI Buttons */}
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-violet-500 border-violet-200 hover:bg-violet-50"
+              onClick={handleGenerateCaption}
+              disabled={aiLoading}
+            >
+              {aiLoading ? (
+                <div className="w-3.5 h-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              Générer avec IA
+            </Button>
+            {caption.trim() && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-fuchsia-500 border-fuchsia-200 hover:bg-fuchsia-50"
+                onClick={handleImproveCaption}
+                disabled={aiLoading}
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                Améliorer
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Media buttons */}

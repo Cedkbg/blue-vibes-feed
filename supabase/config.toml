@@ -1,1 +1,7 @@
 project_id = "wrnzctvrxicluqmrplfr"
+
+[functions.fetch-news]
+verify_jwt = false
+
+[functions.ai-assistant]
+verify_jwt = false

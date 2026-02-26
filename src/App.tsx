@@ -34,6 +34,7 @@ import UserProfile from "./pages/UserProfile";
 import Certified from "./pages/Certified";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
+import { AIFloatingChat } from "@/components/AIFloatingChat";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const AppContent = () => {
           onDecline={declineCall}
         />
       )}
+      <AIFloatingChat />
     </>
   );
 };

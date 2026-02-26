@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
+import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export const FeedCard = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentsCount, setCommentsCount] = useState(initialComments);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const isVideo = mediaType === "video";
 
   const handleSourceClick = () => {
@@ -146,10 +148,11 @@ export const FeedCard = ({
     navigate(`/profile/${userId}`);
   };
   
-  const shouldTruncate = caption.length > 100;
+  const activeCaption = translatedCaption || caption;
+  const shouldTruncate = activeCaption.length > 100;
   const displayCaption = shouldTruncate && !isExpanded 
-    ? caption.slice(0, 100) + "..." 
-    : caption;
+    ? activeCaption.slice(0, 100) + "..." 
+    : activeCaption;
 
   const handleShare = async (platform?: string) => {
     const shareUrl = `${window.location.origin}/p/${id}`;
@@ -262,6 +265,9 @@ export const FeedCard = ({
                       {isExpanded ? "Voir moins" : "Lire plus..."}
                     </button>
                   )}
+                  <div className="mt-1">
+                    <AITranslateButton text={caption} onTranslated={setTranslatedCaption} />
+                  </div>
                 </div>
               )}
             </div>
@@ -346,6 +352,11 @@ export const FeedCard = ({
                   {isExpanded ? "Voir moins" : "Lire plus..."}
                   <ChevronDown className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")} />
                 </button>
+              )}
+              {caption && (
+                <div className="mt-1">
+                  <AITranslateButton text={caption} onTranslated={setTranslatedCaption} />
+                </div>
               )}
             </div>
 
