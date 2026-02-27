@@ -42,6 +42,7 @@ interface FeedCardProps {
     isFollowing?: boolean;
   };
   image?: string;
+  mediaUrls?: string[] | null;
   mediaType?: string | null;
   caption: string;
   likes: number;
