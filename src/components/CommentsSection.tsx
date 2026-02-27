@@ -252,6 +252,7 @@ export const CommentsSection = ({ postId, initialCount = 0, isOpen, onOpenChange
                 <Reply className="h-3.5 w-3.5 mr-1" />
                 Répondre
               </Button>
+              <CommentLikeButton commentId={comment.id} />
               {user?.id === comment.user_id && (
                 <Button
                   variant="ghost"
