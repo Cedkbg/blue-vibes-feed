@@ -278,10 +278,12 @@ export const FeedCard = ({
 
             {/* Media */}
             <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '70vh' }}>
-              {isVideo ? (
+              {isCarousel ? (
+                <ImageCarousel images={mediaUrls} alt={caption} />
+              ) : isVideo ? (
                 <video src={image} className="w-full h-auto max-h-[70vh] object-contain" controls playsInline muted loop />
               ) : (
-                <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" />
+                <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
               )}
             </div>
 
