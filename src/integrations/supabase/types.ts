@@ -259,6 +259,105 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborative_post_members: {
+        Row: {
+          collab_post_id: string
+          id: string
+          joined_at: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          collab_post_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          collab_post_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborative_post_members_collab_post_id_fkey"
+            columns: ["collab_post_id"]
+            isOneToOne: false
+            referencedRelation: "collaborative_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborative_posts: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          post_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          post_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborative_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           created_at: string
@@ -1001,6 +1100,7 @@ export type Database = {
           likes_count: number
           media_type: string | null
           media_url: string | null
+          media_urls: string[] | null
           updated_at: string
           user_id: string
         }
@@ -1015,6 +1115,7 @@ export type Database = {
           likes_count?: number
           media_type?: string | null
           media_url?: string | null
+          media_urls?: string[] | null
           updated_at?: string
           user_id: string
         }
@@ -1029,6 +1130,7 @@ export type Database = {
           likes_count?: number
           media_type?: string | null
           media_url?: string | null
+          media_urls?: string[] | null
           updated_at?: string
           user_id?: string
         }
