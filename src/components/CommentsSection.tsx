@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, Trash2, Reply, ChevronDown, ChevronUp, CornerDownRight, X } from "lucide-react";
+import { CommentLikeButton } from "@/components/CommentLikeButton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
