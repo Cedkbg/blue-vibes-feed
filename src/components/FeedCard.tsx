@@ -55,6 +55,7 @@ export const FeedCard = ({
   userId,
   user, 
   image, 
+  mediaUrls,
   mediaType,
   caption, 
   likes: initialLikes, 
