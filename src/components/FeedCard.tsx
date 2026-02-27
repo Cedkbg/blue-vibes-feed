@@ -70,6 +70,7 @@ export const FeedCard = ({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const isVideo = mediaType === "video";
+  const isCarousel = mediaUrls && mediaUrls.length > 1;
 
   const handleSourceClick = () => {
     if (!source) return;
