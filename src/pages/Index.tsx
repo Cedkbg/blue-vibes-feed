@@ -144,7 +144,7 @@ const Index = () => {
                   isFollowing: false,
                 }}
                 image={post.media_url || undefined}
-                mediaUrls={(post as any).media_urls || null}
+                mediaUrls={post.media_urls || null}
                 mediaType={post.media_type}
                 caption={post.caption || ""}
                 likes={post.likes_count}
