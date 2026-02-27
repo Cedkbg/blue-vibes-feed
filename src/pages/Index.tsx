@@ -16,6 +16,7 @@ interface Post {
   user_id: string;
   caption: string | null;
   media_url: string | null;
+  media_urls: string[] | null;
   media_type: string | null;
   likes_count: number;
   comments_count: number;
