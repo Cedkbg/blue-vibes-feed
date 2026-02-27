@@ -16,6 +16,7 @@ interface Post {
   user_id: string;
   caption: string | null;
   media_url: string | null;
+  media_urls: string[] | null;
   media_type: string | null;
   likes_count: number;
   comments_count: number;
@@ -55,7 +56,7 @@ const Index = () => {
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("*")
-      .neq("media_type", "video")
+      .not("media_type", "eq", "video")
       .is("channel_id", null)
       .is("group_id", null)
       .is("community_id", null)
@@ -143,6 +144,7 @@ const Index = () => {
                   isFollowing: false,
                 }}
                 image={post.media_url || undefined}
+                mediaUrls={post.media_urls || null}
                 mediaType={post.media_type}
                 caption={post.caption || ""}
                 likes={post.likes_count}

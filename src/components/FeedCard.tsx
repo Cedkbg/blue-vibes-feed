@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
 import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
+import { ImageCarousel } from "@/components/ImageCarousel";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
@@ -41,6 +42,7 @@ interface FeedCardProps {
     isFollowing?: boolean;
   };
   image?: string;
+  mediaUrls?: string[] | null;
   mediaType?: string | null;
   caption: string;
   likes: number;
@@ -53,6 +55,7 @@ export const FeedCard = ({
   userId,
   user, 
   image, 
+  mediaUrls,
   mediaType,
   caption, 
   likes: initialLikes, 
@@ -67,6 +70,7 @@ export const FeedCard = ({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const isVideo = mediaType === "video";
+  const isCarousel = mediaUrls && mediaUrls.length > 1;
 
   const handleSourceClick = () => {
     if (!source) return;
@@ -274,10 +278,12 @@ export const FeedCard = ({
 
             {/* Media */}
             <div className="relative w-full overflow-hidden bg-muted" style={{ maxHeight: '70vh' }}>
-              {isVideo ? (
+              {isCarousel ? (
+                <ImageCarousel images={mediaUrls} alt={caption} />
+              ) : isVideo ? (
                 <video src={image} className="w-full h-auto max-h-[70vh] object-contain" controls playsInline muted loop />
               ) : (
-                <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" />
+                <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
               )}
             </div>
 
