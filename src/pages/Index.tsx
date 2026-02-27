@@ -55,7 +55,7 @@ const Index = () => {
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("*")
-      .neq("media_type", "video")
+      .not("media_type", "eq", "video")
       .is("channel_id", null)
       .is("group_id", null)
       .is("community_id", null)
