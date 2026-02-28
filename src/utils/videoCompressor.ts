@@ -68,14 +68,18 @@ export const compressVideo = (
 
       const stream = canvas.captureStream(30);
 
-      // Try to capture audio too
+      // Capture audio from the video element
       try {
         const audioCtx = new AudioContext();
         const source = audioCtx.createMediaElementSource(video);
         const dest = audioCtx.createMediaStreamDestination();
         source.connect(dest);
-        source.connect(audioCtx.destination);
+        // Don't connect to speakers to avoid echo, but keep the audio track
         dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+        
+        // We need to unmute the video for audio capture to work
+        video.muted = false;
+        video.volume = 0; // silent playback but audio still flows through AudioContext
       } catch {
         // No audio or unsupported - continue without
       }
