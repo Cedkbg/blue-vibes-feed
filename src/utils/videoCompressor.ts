@@ -37,13 +37,14 @@ export const compressVideo = (
     video.src = url;
 
     video.onloadedmetadata = () => {
-      const { maxWidth = 1280, maxHeight = 720 } = options;
+      const { maxWidth = 1920, maxHeight = 1080 } = options;
 
       // Calculate scaled dimensions
       let width = video.videoWidth;
       let height = video.videoHeight;
 
-      if (width > maxWidth || height > maxHeight) {
+      // Only downscale if significantly larger
+      if (width > maxWidth * 1.1 || height > maxHeight * 1.1) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width = Math.round(width * ratio);
         height = Math.round(height * ratio);
