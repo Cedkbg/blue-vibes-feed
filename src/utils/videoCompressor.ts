@@ -22,8 +22,8 @@ export const compressVideo = (
   options: CompressOptions = DEFAULT_OPTIONS
 ): Promise<File> => {
   return new Promise((resolve, reject) => {
-    // If file is already small enough (<5MB), skip compression
-    if (file.size < 5 * 1024 * 1024) {
+    // If file is already small enough (<10MB), skip compression
+    if (file.size < 10 * 1024 * 1024) {
       resolve(file);
       return;
     }
