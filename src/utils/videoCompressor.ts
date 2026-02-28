@@ -11,9 +11,9 @@ interface CompressOptions {
 }
 
 const DEFAULT_OPTIONS: CompressOptions = {
-  maxWidth: 1280,
-  maxHeight: 720,
-  videoBitrate: 1_500_000, // 1.5 Mbps
+  maxWidth: 1920,
+  maxHeight: 1080,
+  videoBitrate: 4_000_000, // 4 Mbps for better quality
 };
 
 export const compressVideo = (

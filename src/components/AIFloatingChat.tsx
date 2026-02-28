@@ -98,7 +98,7 @@ export const AIFloatingChat = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            className="fixed bottom-28 right-4 z-[60]"
+            className="fixed bottom-24 left-4 z-[60]"
           >
             <Button
               size="icon"
