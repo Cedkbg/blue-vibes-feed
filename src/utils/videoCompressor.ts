@@ -11,9 +11,9 @@ interface CompressOptions {
 }
 
 const DEFAULT_OPTIONS: CompressOptions = {
-  maxWidth: 1280,
-  maxHeight: 720,
-  videoBitrate: 1_500_000, // 1.5 Mbps
+  maxWidth: 1920,
+  maxHeight: 1080,
+  videoBitrate: 4_000_000, // 4 Mbps for better quality
 };
 
 export const compressVideo = (
@@ -22,8 +22,8 @@ export const compressVideo = (
   options: CompressOptions = DEFAULT_OPTIONS
 ): Promise<File> => {
   return new Promise((resolve, reject) => {
-    // If file is already small enough (<5MB), skip compression
-    if (file.size < 5 * 1024 * 1024) {
+    // If file is already small enough (<10MB), skip compression
+    if (file.size < 10 * 1024 * 1024) {
       resolve(file);
       return;
     }
@@ -37,13 +37,14 @@ export const compressVideo = (
     video.src = url;
 
     video.onloadedmetadata = () => {
-      const { maxWidth = 1280, maxHeight = 720 } = options;
+      const { maxWidth = 1920, maxHeight = 1080 } = options;
 
       // Calculate scaled dimensions
       let width = video.videoWidth;
       let height = video.videoHeight;
 
-      if (width > maxWidth || height > maxHeight) {
+      // Only downscale if significantly larger
+      if (width > maxWidth * 1.1 || height > maxHeight * 1.1) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width = Math.round(width * ratio);
         height = Math.round(height * ratio);
@@ -67,14 +68,18 @@ export const compressVideo = (
 
       const stream = canvas.captureStream(30);
 
-      // Try to capture audio too
+      // Capture audio from the video element
       try {
         const audioCtx = new AudioContext();
         const source = audioCtx.createMediaElementSource(video);
         const dest = audioCtx.createMediaStreamDestination();
         source.connect(dest);
-        source.connect(audioCtx.destination);
+        // Don't connect to speakers to avoid echo, but keep the audio track
         dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+        
+        // We need to unmute the video for audio capture to work
+        video.muted = false;
+        video.volume = 0; // silent playback but audio still flows through AudioContext
       } catch {
         // No audio or unsupported - continue without
       }

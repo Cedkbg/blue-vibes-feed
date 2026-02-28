@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useRef, TouchEvent } from "react";
 import { cn } from "@/lib/utils";
+import { Image } from "lucide-react";
 
 interface ImageCarouselProps {
   images: string[];
@@ -10,6 +10,8 @@ interface ImageCarouselProps {
 
 export const ImageCarousel = ({ images, alt = "Post", className }: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
 
   if (images.length === 0) return null;
   if (images.length === 1) {
@@ -23,11 +25,37 @@ export const ImageCarousel = ({ images, alt = "Post", className }: ImageCarousel
     );
   }
 
-  const goNext = () => setCurrentIndex((prev) => Math.min(prev + 1, images.length - 1));
-  const goPrev = () => setCurrentIndex((prev) => Math.max(prev - 1, 0));
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+    if (diff > threshold && currentIndex < images.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    } else if (diff < -threshold && currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
 
   return (
-    <div className="relative w-full overflow-hidden group">
+    <div
+      className="relative w-full overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Photo count badge */}
+      <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1">
+        <Image className="w-3 h-3" />
+        {currentIndex + 1}/{images.length}
+      </div>
+
       {/* Images */}
       <div
         className="flex transition-transform duration-300 ease-out"
@@ -44,30 +72,11 @@ export const ImageCarousel = ({ images, alt = "Post", className }: ImageCarousel
         ))}
       </div>
 
-      {/* Navigation arrows */}
-      {currentIndex > 0 && (
-        <button
-          onClick={goPrev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-      )}
-      {currentIndex < images.length - 1 && (
-        <button
-          onClick={goNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      )}
-
       {/* Dots indicator */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
         {images.map((_, i) => (
-          <button
+          <span
             key={i}
-            onClick={() => setCurrentIndex(i)}
             className={cn(
               "w-2 h-2 rounded-full transition-all",
               i === currentIndex
