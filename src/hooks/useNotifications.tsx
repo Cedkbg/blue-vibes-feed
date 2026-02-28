@@ -34,17 +34,25 @@ export const useNotifications = () => {
       return;
     }
 
-    const fetchNotifications = async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+    let retryCount = 0;
+    const maxRetries = 3;
 
-      if (error) {
-        console.error("Error fetching notifications:", error);
-      } else if (data) {
+    const fetchNotifications = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (error) {
+          throw error;
+        }
+        
+        retryCount = 0; // Reset on success
+        
+        if (data) {
         // Fetch from_user profiles
         const fromUserIds = [...new Set(data.filter(n => n.from_user_id).map(n => n.from_user_id))];
         
