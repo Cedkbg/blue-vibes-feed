@@ -80,6 +80,15 @@ export const useNotifications = () => {
         }
       }
       setLoading(false);
+      } catch (err: any) {
+        console.error("Error fetching notifications:", err);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(fetchNotifications, retryCount * 2000);
+        } else {
+          setLoading(false);
+        }
+      }
     };
 
     fetchNotifications();
