@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAI } from "@/hooks/useAI";
 import { compressVideo, compressImage, formatFileSize } from "@/utils/videoCompressor";
+import { getMoodFromText } from "@/hooks/useMoodAura";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -125,11 +126,13 @@ const CreatePost = () => {
       // Upload files
       const urls = await Promise.all(processedFiles.map(uploadFile));
 
+      const detectedMood = getMoodFromText(caption.trim());
       const postData: any = {
         user_id: user.id,
         caption: caption.trim() || null,
         media_type: mediaType,
         media_url: urls[0] || null,
+        mood_aura: detectedMood !== "neutral" ? detectedMood : null,
       };
 
       // Add carousel urls if multiple images

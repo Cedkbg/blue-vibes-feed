@@ -149,6 +149,7 @@ const Index = () => {
                 caption={post.caption || ""}
                 likes={post.likes_count}
                 comments={post.comments_count}
+                moodAura={(post as any).mood_aura}
               />
             ))}
             {/* Infinite scroll sentinel */}
