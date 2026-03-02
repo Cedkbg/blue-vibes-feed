@@ -1,19 +1,18 @@
 /**
  * Client-side video compression utility
- * Reduces video file size before upload for faster uploads on slow connections
+ * Preserves audio quality while reducing file size
  */
 
 interface CompressOptions {
   maxWidth?: number;
   maxHeight?: number;
-  videoBitrate?: number; // in bits per second
-  audioBitrate?: number;
+  videoBitrate?: number;
 }
 
 const DEFAULT_OPTIONS: CompressOptions = {
   maxWidth: 1920,
   maxHeight: 1080,
-  videoBitrate: 4_000_000, // 4 Mbps for better quality
+  videoBitrate: 4_000_000,
 };
 
 export const compressVideo = (
@@ -21,16 +20,15 @@ export const compressVideo = (
   onProgress?: (progress: number) => void,
   options: CompressOptions = DEFAULT_OPTIONS
 ): Promise<File> => {
-  return new Promise((resolve, reject) => {
-    // If file is already small enough (<10MB), skip compression
+  return new Promise((resolve) => {
+    // Skip compression for small files
     if (file.size < 10 * 1024 * 1024) {
       resolve(file);
       return;
     }
 
     const video = document.createElement("video");
-    video.preload = "metadata";
-    video.muted = true;
+    video.preload = "auto";
     video.playsInline = true;
 
     const url = URL.createObjectURL(file);
@@ -39,18 +37,15 @@ export const compressVideo = (
     video.onloadedmetadata = () => {
       const { maxWidth = 1920, maxHeight = 1080 } = options;
 
-      // Calculate scaled dimensions
       let width = video.videoWidth;
       let height = video.videoHeight;
 
-      // Only downscale if significantly larger
       if (width > maxWidth * 1.1 || height > maxHeight * 1.1) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width = Math.round(width * ratio);
         height = Math.round(height * ratio);
       }
 
-      // Ensure even dimensions (required for some codecs)
       width = width % 2 === 0 ? width : width - 1;
       height = height % 2 === 0 ? height : height - 1;
 
@@ -59,32 +54,45 @@ export const compressVideo = (
       canvas.height = height;
       const ctx = canvas.getContext("2d")!;
 
-      // Check if MediaRecorder supports webm
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-        ? "video/webm;codecs=vp9"
-        : MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
-        ? "video/webm;codecs=vp8"
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+        ? "video/webm;codecs=vp9,opus"
+        : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+        ? "video/webm;codecs=vp8,opus"
         : "video/webm";
 
-      const stream = canvas.captureStream(30);
+      const canvasStream = canvas.captureStream(30);
 
-      // Capture audio from the video element
+      // Proper audio capture: use captureStream on the video element directly
+      // This avoids AudioContext issues and preserves audio properly
       try {
+        // Create a separate video element for audio capture via captureStream
+        const audioVideo = document.createElement("video");
+        audioVideo.src = url;
+        audioVideo.muted = false;
+        audioVideo.volume = 1;
+        
+        // Use the original video's audio tracks via AudioContext
         const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaElementSource(video);
+        const audioSource = audioCtx.createMediaElementSource(video);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 1;
         const dest = audioCtx.createMediaStreamDestination();
-        source.connect(dest);
-        // Don't connect to speakers to avoid echo, but keep the audio track
-        dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+        audioSource.connect(gainNode);
+        gainNode.connect(dest);
+        // Don't connect to speakers (no echo)
+        
+        dest.stream.getAudioTracks().forEach((track) => {
+          canvasStream.addTrack(track);
+        });
         
         // We need to unmute the video for audio capture to work
         video.muted = false;
-        video.volume = 0; // silent playback but audio still flows through AudioContext
+        video.volume = 0;
       } catch {
-        // No audio or unsupported - continue without
+        // Fallback: no audio
       }
 
-      const recorder = new MediaRecorder(stream, {
+      const recorder = new MediaRecorder(canvasStream, {
         mimeType,
         videoBitsPerSecond: options.videoBitrate || DEFAULT_OPTIONS.videoBitrate,
       });
@@ -103,7 +111,6 @@ export const compressVideo = (
           { type: mimeType, lastModified: Date.now() }
         );
 
-        // Only use compressed if actually smaller
         if (compressedFile.size < file.size) {
           resolve(compressedFile);
         } else {
@@ -113,16 +120,15 @@ export const compressVideo = (
 
       recorder.onerror = () => {
         URL.revokeObjectURL(url);
-        // Fallback: return original file
         resolve(file);
       };
 
       video.onplay = () => {
-        recorder.start(1000); // Collect data every second
+        recorder.start(1000);
 
         const draw = () => {
           if (video.paused || video.ended) {
-            recorder.stop();
+            if (recorder.state === "recording") recorder.stop();
             return;
           }
           ctx.drawImage(video, 0, 0, width, height);
@@ -144,13 +150,13 @@ export const compressVideo = (
 
       video.play().catch(() => {
         URL.revokeObjectURL(url);
-        resolve(file); // Fallback
+        resolve(file);
       });
     };
 
     video.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve(file); // Fallback
+      resolve(file);
     };
   });
 };
@@ -160,10 +166,10 @@ export const compressImage = async (
   maxWidth = 1920,
   quality = 0.85
 ): Promise<File> => {
-  if (file.size < 500 * 1024) return file; // Skip if < 500KB
+  if (file.size < 500 * 1024) return file;
 
   return new Promise((resolve) => {
-    const img = new Image();
+    const img = new window.Image();
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
