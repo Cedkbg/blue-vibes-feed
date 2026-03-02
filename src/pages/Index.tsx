@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { AIFloatingChat } from "@/components/AIFloatingChat";
 
 interface Post {
   id: string;
@@ -179,6 +180,7 @@ const Index = () => {
           </Button>
         </div>
       )}
+      <AIFloatingChat />
     </DesktopLayout>
   );
 };
