@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommentsSection, CommentsButton } from "./CommentsSection";
 import { useLikes } from "@/hooks/useLikes";
+import { useMoodAura } from "@/hooks/useMoodAura";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +49,7 @@ interface FeedCardProps {
   likes: number;
   comments: number;
   source?: SourceInfo | null;
+  moodAura?: string | null;
 }
 
 export const FeedCard = ({ 
@@ -61,9 +63,11 @@ export const FeedCard = ({
   likes: initialLikes, 
   comments: initialComments,
   source,
+  moodAura: savedMood,
 }: FeedCardProps) => {
   const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
+  const mood = useMoodAura(caption, savedMood);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentsCount, setCommentsCount] = useState(initialComments);
@@ -218,7 +222,17 @@ export const FeedCard = ({
 
   return (
     <>
-      <div className="relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4">
+      <div className={cn(
+        "relative bg-card rounded-2xl overflow-hidden shadow-lg mb-4",
+        mood.mood !== "neutral" && `bg-gradient-to-br ${mood.gradient} shadow-md ${mood.glowColor}`
+      )}>
+        {/* Mood Aura badge */}
+        {mood.mood !== "neutral" && (
+          <div className={cn("absolute top-3 left-3 z-10 flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm", mood.textClass)}>
+            <span>{mood.emoji}</span>
+            <span>{mood.label}</span>
+          </div>
+        )}
         {hasImage ? (
           <>
             {/* Facebook-style: user header + caption above image */}
