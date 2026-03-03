@@ -316,6 +316,19 @@ export const FeedCard = ({
               )}
             </div>
 
+            {/* Audio indicator */}
+            {audioUrl && (
+              <div className="px-4 pt-2">
+                <button
+                  onClick={toggleAudio}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                >
+                  {isAudioPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  {isAudioPlaying ? "Couper le son" : "🎵 Écouter le son"}
+                </button>
+              </div>
+            )}
+
             {/* Action bar below image */}
             <div className="px-4 py-2 flex items-center gap-4">
               <button onClick={toggleLike} disabled={likesLoading} className="flex items-center gap-1.5 transition-transform active:scale-90 disabled:opacity-50">
