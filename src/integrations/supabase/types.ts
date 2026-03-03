@@ -1090,6 +1090,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          audio_url: string | null
           caption: string | null
           channel_id: string | null
           comments_count: number
@@ -1106,6 +1107,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audio_url?: string | null
           caption?: string | null
           channel_id?: string | null
           comments_count?: number
@@ -1122,6 +1124,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audio_url?: string | null
           caption?: string | null
           channel_id?: string | null
           comments_count?: number
