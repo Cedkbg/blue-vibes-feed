@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users, Volume2, VolumeX } from "lucide-react";
 import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
 import { ImageCarousel } from "@/components/ImageCarousel";
@@ -50,6 +50,7 @@ interface FeedCardProps {
   comments: number;
   source?: SourceInfo | null;
   moodAura?: string | null;
+  audioUrl?: string | null;
 }
 
 export const FeedCard = ({ 
@@ -64,6 +65,7 @@ export const FeedCard = ({
   comments: initialComments,
   source,
   moodAura: savedMood,
+  audioUrl,
 }: FeedCardProps) => {
   const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
