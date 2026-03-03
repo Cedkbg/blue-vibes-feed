@@ -24,8 +24,8 @@ export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
             size="icon" 
             variant="ghost" 
             className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => navigate("/trending")}
-            aria-label="Tendances"
+            onClick={() => navigate("/creneau")}
+            aria-label="Créneau"
           >
             <Flame className="w-5 h-5" />
           </Button>

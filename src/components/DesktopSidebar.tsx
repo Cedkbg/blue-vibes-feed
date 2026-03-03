@@ -1,4 +1,4 @@
-import { Home, Video, Users, Phone, MessageCircle, User, Search, PlusCircle, Radio, Settings, Compass, Flame } from "lucide-react";
+import { Home, Video, Users, Phone, MessageCircle, User, Search, PlusCircle, Radio, Settings, Compass, Briefcase } from "lucide-react";
 import { NavLink as RouterNavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +17,7 @@ const navItems: NavItem[] = [
   { icon: Home, label: "Accueil", path: "/" },
   { icon: Video, label: "Vidéos", path: "/video" },
   { icon: Compass, label: "Découvrir", path: "/discover" },
-  { icon: Flame, label: "Tendances", path: "/trending" },
+  { icon: Briefcase, label: "Créneau", path: "/creneau" },
   { icon: Users, label: "Amis", path: "/friends" },
   { icon: Phone, label: "Appels", path: "/calls" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
