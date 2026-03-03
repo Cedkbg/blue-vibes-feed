@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users } from "lucide-react";
+import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users, Volume2, VolumeX } from "lucide-react";
 import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
 import { ImageCarousel } from "@/components/ImageCarousel";
@@ -50,6 +50,7 @@ interface FeedCardProps {
   comments: number;
   source?: SourceInfo | null;
   moodAura?: string | null;
+  audioUrl?: string | null;
 }
 
 export const FeedCard = ({ 
@@ -64,6 +65,7 @@ export const FeedCard = ({
   comments: initialComments,
   source,
   moodAura: savedMood,
+  audioUrl,
 }: FeedCardProps) => {
   const navigate = useNavigate();
   const { likesCount, isLiked, toggleLike, isLoading: likesLoading } = useLikes(id, initialLikes);
@@ -73,8 +75,21 @@ export const FeedCard = ({
   const [commentsCount, setCommentsCount] = useState(initialComments);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const audioRef = useState<HTMLAudioElement | null>(() => audioUrl ? new Audio(audioUrl) : null)[0];
   const isVideo = mediaType === "video";
   const isCarousel = mediaUrls && mediaUrls.length > 1;
+
+  const toggleAudio = () => {
+    if (!audioRef) return;
+    if (isAudioPlaying) {
+      audioRef.pause();
+    } else {
+      audioRef.currentTime = 0;
+      audioRef.play();
+    }
+    setIsAudioPlaying(!isAudioPlaying);
+  };
 
   const handleSourceClick = () => {
     if (!source) return;
@@ -300,6 +315,19 @@ export const FeedCard = ({
                 <img src={image} alt={caption} className="w-full h-auto max-h-[70vh] object-contain" loading="lazy" />
               )}
             </div>
+
+            {/* Audio indicator */}
+            {audioUrl && (
+              <div className="px-4 pt-2">
+                <button
+                  onClick={toggleAudio}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                >
+                  {isAudioPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  {isAudioPlaying ? "Couper le son" : "🎵 Écouter le son"}
+                </button>
+              </div>
+            )}
 
             {/* Action bar below image */}
             <div className="px-4 py-2 flex items-center gap-4">
