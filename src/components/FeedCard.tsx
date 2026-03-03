@@ -75,8 +75,21 @@ export const FeedCard = ({
   const [commentsCount, setCommentsCount] = useState(initialComments);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const audioRef = useState<HTMLAudioElement | null>(() => audioUrl ? new Audio(audioUrl) : null)[0];
   const isVideo = mediaType === "video";
   const isCarousel = mediaUrls && mediaUrls.length > 1;
+
+  const toggleAudio = () => {
+    if (!audioRef) return;
+    if (isAudioPlaying) {
+      audioRef.pause();
+    } else {
+      audioRef.currentTime = 0;
+      audioRef.play();
+    }
+    setIsAudioPlaying(!isAudioPlaying);
+  };
 
   const handleSourceClick = () => {
     if (!source) return;
