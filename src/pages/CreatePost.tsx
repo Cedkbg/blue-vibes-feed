@@ -129,6 +129,12 @@ const CreatePost = () => {
       // Upload files
       const urls = await Promise.all(processedFiles.map(uploadFile));
 
+      // Upload audio if present
+      let audioUrl: string | null = null;
+      if (audioFile) {
+        audioUrl = await uploadFile(audioFile);
+      }
+
       const detectedMood = getMoodFromText(caption.trim());
       const postData: any = {
         user_id: user.id,
@@ -136,6 +142,7 @@ const CreatePost = () => {
         media_type: mediaType,
         media_url: urls[0] || null,
         mood_aura: detectedMood !== "neutral" ? detectedMood : null,
+        audio_url: audioUrl,
       };
 
       // Add carousel urls if multiple images
