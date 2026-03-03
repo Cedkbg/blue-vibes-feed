@@ -231,19 +231,19 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
         )}
       </div>
 
-      {/* Trending Banner - En premier pour visibilité */}
+      {/* Créneau Banner */}
       <Card
         className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-3"
         onClick={() => { onNavigate(); navigate("/creneau"); }}
       >
         <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-4 flex items-center gap-3">
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-4 flex items-center gap-3">
             <div className="bg-white/20 rounded-full p-2">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-white text-sm">🔥 Tendances</h3>
-              <p className="text-white/80 text-[10px]">Hashtags populaires du moment</p>
+              <h3 className="font-bold text-white text-sm">💼 Créneau</h3>
+              <p className="text-white/80 text-[10px]">Espaces de travail professionnels</p>
             </div>
           </div>
         </CardContent>
