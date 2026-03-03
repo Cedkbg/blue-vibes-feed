@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image, Video, Send, X, Sparkles, Wand2, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Image, Video, Send, X, Sparkles, Wand2, Plus, Loader2, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -22,6 +22,9 @@ const CreatePost = () => {
   const [compressionProgress, setCompressionProgress] = useState<number | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreview, setAudioPreview] = useState<string | null>(null);
   const { generateCaption, improveText, isLoading: aiLoading } = useAI();
 
   const handleGenerateCaption = async () => {
@@ -235,10 +238,32 @@ const CreatePost = () => {
           </div>
         </div>
 
+        {/* Audio preview */}
+        {audioFile && (
+          <div className="flex items-center gap-3 p-3 bg-muted rounded-xl">
+            <Music className="w-5 h-5 text-primary" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{audioFile.name}</p>
+              {audioPreview && <audio src={audioPreview} controls className="w-full mt-1 h-8" />}
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setAudioFile(null); if (audioPreview) URL.revokeObjectURL(audioPreview); setAudioPreview(null); }}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Media buttons */}
-        <div className="flex gap-4 border-t border-border pt-4">
+        <div className="flex gap-3 border-t border-border pt-4 flex-wrap">
           <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && handleImagesSelect(e.target.files)} />
           <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoSelect(f); }} />
+          <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) {
+              if (f.size > 20 * 1024 * 1024) { toast.error("Audio trop volumineux (max 20 MB)"); return; }
+              setAudioFile(f);
+              setAudioPreview(URL.createObjectURL(f));
+            }
+          }} />
           <Button variant="outline" className="flex-1 gap-2" onClick={() => imageInputRef.current?.click()} disabled={isLoading || mediaType === "video"}>
             <Image className="w-5 h-5" />
             Photo{mediaFiles.length > 0 ? ` (${mediaFiles.length})` : ""}
@@ -246,6 +271,10 @@ const CreatePost = () => {
           <Button variant="outline" className="flex-1 gap-2" onClick={() => videoInputRef.current?.click()} disabled={isLoading || (mediaType === "image" && mediaFiles.length > 0)}>
             <Video className="w-5 h-5" />
             Vidéo
+          </Button>
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => audioInputRef.current?.click()} disabled={isLoading || !!audioFile}>
+            <Music className="w-5 h-5" />
+            Son
           </Button>
         </div>
 
