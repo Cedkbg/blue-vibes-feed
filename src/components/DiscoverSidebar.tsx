@@ -234,7 +234,7 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
       {/* Trending Banner - En premier pour visibilité */}
       <Card
         className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-3"
-        onClick={() => { onNavigate(); navigate("/trending"); }}
+        onClick={() => { onNavigate(); navigate("/creneau"); }}
       >
         <CardContent className="p-0">
           <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-4 flex items-center gap-3">
