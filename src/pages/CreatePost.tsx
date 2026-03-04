@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image, Video, Send, X, Sparkles, Wand2, Plus, Loader2, Music } from "lucide-react";
+import { ArrowLeft, Image, Video, Send, X, Sparkles, Wand2, Plus, Loader2, Music, Library } from "lucide-react";
+import { SoundLibrarySheet } from "@/components/SoundLibrarySheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +26,7 @@ const CreatePost = () => {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
+  const [librarySound, setLibrarySound] = useState<{ id: string; title: string; artist: string | null; audio_url: string } | null>(null);
   const { generateCaption, improveText, isLoading: aiLoading } = useAI();
 
   const handleGenerateCaption = async () => {
@@ -129,10 +131,12 @@ const CreatePost = () => {
       // Upload files
       const urls = await Promise.all(processedFiles.map(uploadFile));
 
-      // Upload audio if present
+      // Upload audio if present, or use library sound URL
       let audioUrl: string | null = null;
       if (audioFile) {
         audioUrl = await uploadFile(audioFile);
+      } else if (librarySound) {
+        audioUrl = librarySound.audio_url;
       }
 
       const detectedMood = getMoodFromText(caption.trim());
@@ -246,14 +250,25 @@ const CreatePost = () => {
         </div>
 
         {/* Audio preview */}
-        {audioFile && (
+        {(audioFile || librarySound) && (
           <div className="flex items-center gap-3 p-3 bg-muted rounded-xl">
             <Music className="w-5 h-5 text-primary" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{audioFile.name}</p>
-              {audioPreview && <audio src={audioPreview} controls className="w-full mt-1 h-8" />}
+              <p className="text-sm font-medium truncate">
+                {audioFile ? audioFile.name : `🎵 ${librarySound?.title}`}
+              </p>
+              {audioFile ? (
+                audioPreview && <audio src={audioPreview} controls className="w-full mt-1 h-8" />
+              ) : librarySound ? (
+                <audio src={librarySound.audio_url} controls className="w-full mt-1 h-8" />
+              ) : null}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setAudioFile(null); if (audioPreview) URL.revokeObjectURL(audioPreview); setAudioPreview(null); }}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              setAudioFile(null);
+              setLibrarySound(null);
+              if (audioPreview) URL.revokeObjectURL(audioPreview);
+              setAudioPreview(null);
+            }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -279,10 +294,24 @@ const CreatePost = () => {
             <Video className="w-5 h-5" />
             Vidéo
           </Button>
-          <Button variant="outline" className="flex-1 gap-2" onClick={() => audioInputRef.current?.click()} disabled={isLoading || !!audioFile}>
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => audioInputRef.current?.click()} disabled={isLoading || !!audioFile || !!librarySound}>
             <Music className="w-5 h-5" />
             Son
           </Button>
+          <SoundLibrarySheet
+            onSelect={(sound) => {
+              setAudioFile(null);
+              if (audioPreview) URL.revokeObjectURL(audioPreview);
+              setAudioPreview(null);
+              setLibrarySound(sound);
+            }}
+            selectedSound={librarySound as any}
+          >
+            <Button variant="outline" className="flex-1 gap-2" disabled={isLoading || !!audioFile || !!librarySound}>
+              <Library className="w-5 h-5" />
+              Bibliothèque
+            </Button>
+          </SoundLibrarySheet>
         </div>
 
         {isLoading && (
