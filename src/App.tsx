@@ -29,6 +29,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
 import Creneau from "./pages/Creneau";
+import Trending from "./pages/Trending";
 import PostDetail from "./pages/PostDetail";
 import UserProfile from "./pages/UserProfile";
 import Certified from "./pages/Certified";
@@ -68,6 +69,7 @@ const AppContent = () => {
         <Route path="/channel/:channelId" element={<ProtectedRoute><ChannelDetails /></ProtectedRoute>} />
         
         <Route path="/creneau" element={<ProtectedRoute><Creneau /></ProtectedRoute>} />
+        <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
         <Route path="/certified" element={<ProtectedRoute><Certified /></ProtectedRoute>} />
         {/* Public shareable routes – no auth required */}
         <Route path="/p/:postId" element={<PostDetail />} />

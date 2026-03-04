@@ -1,4 +1,4 @@
-import { Search, Flame } from "lucide-react";
+import { Search, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { NotificationsSheet } from "@/components/NotificationsSheet";
@@ -24,10 +24,10 @@ export const TopBar = ({ title = "CedLite" }: TopBarProps) => {
             size="icon" 
             variant="ghost" 
             className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => navigate("/creneau")}
-            aria-label="Créneau"
+            onClick={() => navigate("/trending")}
+            aria-label="Tendances"
           >
-            <Flame className="w-5 h-5" />
+            <TrendingUp className="w-5 h-5" />
           </Button>
           <Button 
             size="icon" 
