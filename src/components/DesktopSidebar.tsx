@@ -17,7 +17,7 @@ const navItems: NavItem[] = [
   { icon: Home, label: "Accueil", path: "/" },
   { icon: Video, label: "Vidéos", path: "/video" },
   { icon: Compass, label: "Découvrir", path: "/discover" },
-  { icon: TrendingUp, label: "Tendances", path: "/trending" },
+  { icon: TrendingUp, label: "Tendances", path: "/discover" },
   { icon: Users, label: "Amis", path: "/friends" },
   { icon: Phone, label: "Appels", path: "/calls" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },

@@ -21,7 +21,7 @@ import { StartLiveModal } from "@/components/StartLiveModal";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Radio, Play, Eye, Plus, Tv, 
-  Hash, Layers, Sparkles, BadgeCheck, TrendingUp, UserPlus, Crown, LogOut
+  Hash, Layers, Sparkles, BadgeCheck, Briefcase, UserPlus, Crown, LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -503,8 +503,8 @@ const Friends = () => {
               value="trending"
               className="gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg transition-smooth"
             >
-              <TrendingUp className="w-3 h-3" />
-              Tendances
+              <Briefcase className="w-3 h-3" />
+              Créneau
             </TabsTrigger>
             <TabsTrigger
               value="channels"
@@ -529,20 +529,32 @@ const Friends = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Trending Tab */}
+          {/* Créneau Tab */}
           <TabsContent value="trending" className="space-y-2 animate-in fade-in-50">
-            <h2 className="text-lg font-semibold mb-4">Créateurs populaires</h2>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : popularCreators.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Aucun créateur trouvé</p>
-            ) : (
-              popularCreators.map((profile) => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))
-            )}
+            <h2 className="text-lg font-semibold mb-4">💼 Créneau — Espaces de travail</h2>
+            <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all" onClick={() => navigate("/creneau")}>
+              <CardContent className="p-0">
+                <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-6 text-center">
+                  <Briefcase className="w-12 h-12 text-white mx-auto mb-3" />
+                  <h3 className="font-bold text-white text-lg">Accéder à Créneau</h3>
+                  <p className="text-white/80 text-sm mt-1">Espaces de travail professionnels sécurisés</p>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold mb-3">Créateurs populaires</h3>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : popularCreators.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Aucun créateur trouvé</p>
+              ) : (
+                popularCreators.map((profile) => (
+                  <ProfileCard key={profile.id} profile={profile} />
+                ))
+              )}
+            </div>
           </TabsContent>
 
 

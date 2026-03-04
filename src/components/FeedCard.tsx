@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users, Volume2, VolumeX } from "lucide-react";
 import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
@@ -76,17 +76,40 @@ export const FeedCard = ({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const audioRef = useState<HTMLAudioElement | null>(() => audioUrl ? new Audio(audioUrl) : null)[0];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Auto-play audio like TikTok when post has audio
+  useEffect(() => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    audio.loop = true;
+    audio.volume = 0.5;
+    audioRef.current = audio;
+    
+    // Auto-play
+    audio.play().then(() => {
+      setIsAudioPlaying(true);
+    }).catch(() => {
+      // Autoplay blocked by browser, user needs to tap
+      setIsAudioPlaying(false);
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+    };
+  }, [audioUrl]);
+
   const isVideo = mediaType === "video";
   const isCarousel = mediaUrls && mediaUrls.length > 1;
 
   const toggleAudio = () => {
-    if (!audioRef) return;
+    if (!audioRef.current) return;
     if (isAudioPlaying) {
-      audioRef.pause();
+      audioRef.current.pause();
     } else {
-      audioRef.currentTime = 0;
-      audioRef.play();
+      audioRef.current.play().catch(() => {});
     }
     setIsAudioPlaying(!isAudioPlaying);
   };
@@ -316,16 +339,25 @@ export const FeedCard = ({
               )}
             </div>
 
-            {/* Audio indicator */}
+            {/* TikTok-style audio indicator */}
             {audioUrl && (
-              <div className="px-4 pt-2">
+              <div className="px-4 pt-2 flex items-center gap-2">
                 <button
                   onClick={toggleAudio}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                 >
-                  {isAudioPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  {isAudioPlaying ? "Couper le son" : "🎵 Écouter le son"}
+                  {isAudioPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  {isAudioPlaying ? "🎵 En lecture" : "🔇 Son coupé"}
                 </button>
+                {isAudioPlaying && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0ms" }} />
+                    <span className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                    <span className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                    <span className="w-0.5 h-5 bg-primary rounded-full animate-pulse" style={{ animationDelay: "100ms" }} />
+                    <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "250ms" }} />
+                  </div>
+                )}
               </div>
             )}
 
