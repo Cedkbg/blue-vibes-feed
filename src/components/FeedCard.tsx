@@ -76,17 +76,37 @@ export const FeedCard = ({
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const audioRef = useState<HTMLAudioElement | null>(() => audioUrl ? new Audio(audioUrl) : null)[0];
-  const isVideo = mediaType === "video";
-  const isCarousel = mediaUrls && mediaUrls.length > 1;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Auto-play audio like TikTok when post has audio
+  useEffect(() => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    audio.loop = true;
+    audio.volume = 0.5;
+    audioRef.current = audio;
+    
+    // Auto-play
+    audio.play().then(() => {
+      setIsAudioPlaying(true);
+    }).catch(() => {
+      // Autoplay blocked by browser, user needs to tap
+      setIsAudioPlaying(false);
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audioRef.current = null;
+    };
+  }, [audioUrl]);
 
   const toggleAudio = () => {
-    if (!audioRef) return;
+    if (!audioRef.current) return;
     if (isAudioPlaying) {
-      audioRef.pause();
+      audioRef.current.pause();
     } else {
-      audioRef.currentTime = 0;
-      audioRef.play();
+      audioRef.current.play().catch(() => {});
     }
     setIsAudioPlaying(!isAudioPlaying);
   };
