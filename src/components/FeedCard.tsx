@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Heart, Share2, MoreHorizontal, MapPin, Briefcase, ChevronDown, Link2, Hash, Users, Volume2, VolumeX } from "lucide-react";
 import { AITranslateButton } from "@/components/AITranslateButton";
 import { HashtagText } from "@/components/HashtagText";
@@ -100,6 +100,9 @@ export const FeedCard = ({
       audioRef.current = null;
     };
   }, [audioUrl]);
+
+  const isVideo = mediaType === "video";
+  const isCarousel = mediaUrls && mediaUrls.length > 1;
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
