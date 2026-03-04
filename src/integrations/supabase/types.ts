@@ -1334,6 +1334,48 @@ export type Database = {
           },
         ]
       }
+      sound_library: {
+        Row: {
+          artist: string | null
+          audio_url: string
+          category: string
+          cover_url: string | null
+          created_at: string
+          duration_seconds: number | null
+          genre: string | null
+          id: string
+          is_featured: boolean
+          title: string
+          uses_count: number
+        }
+        Insert: {
+          artist?: string | null
+          audio_url: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          is_featured?: boolean
+          title: string
+          uses_count?: number
+        }
+        Update: {
+          artist?: string | null
+          audio_url?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          genre?: string | null
+          id?: string
+          is_featured?: boolean
+          title?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           caption: string | null
