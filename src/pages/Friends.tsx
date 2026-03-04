@@ -21,7 +21,7 @@ import { StartLiveModal } from "@/components/StartLiveModal";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Users, Radio, Play, Eye, Plus, Tv, 
-  Hash, Layers, Sparkles, BadgeCheck, TrendingUp, UserPlus, Crown, LogOut
+  Hash, Layers, Sparkles, BadgeCheck, Briefcase, UserPlus, Crown, LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -503,8 +503,8 @@ const Friends = () => {
               value="trending"
               className="gap-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg transition-smooth"
             >
-              <TrendingUp className="w-3 h-3" />
-              Tendances
+              <Briefcase className="w-3 h-3" />
+              Créneau
             </TabsTrigger>
             <TabsTrigger
               value="channels"
@@ -529,9 +529,9 @@ const Friends = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Trending Tab */}
+          {/* Créneau Tab */}
           <TabsContent value="trending" className="space-y-2 animate-in fade-in-50">
-            <h2 className="text-lg font-semibold mb-4">Créateurs populaires</h2>
+            <h2 className="text-lg font-semibold mb-4">💼 Créneau — Espaces de travail</h2>
             {loading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
