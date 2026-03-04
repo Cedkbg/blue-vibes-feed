@@ -339,16 +339,25 @@ export const FeedCard = ({
               )}
             </div>
 
-            {/* Audio indicator */}
+            {/* TikTok-style audio indicator */}
             {audioUrl && (
-              <div className="px-4 pt-2">
+              <div className="px-4 pt-2 flex items-center gap-2">
                 <button
                   onClick={toggleAudio}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                 >
-                  {isAudioPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  {isAudioPlaying ? "Couper le son" : "🎵 Écouter le son"}
+                  {isAudioPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  {isAudioPlaying ? "🎵 En lecture" : "🔇 Son coupé"}
                 </button>
+                {isAudioPlaying && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0ms" }} />
+                    <span className="w-0.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                    <span className="w-0.5 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
+                    <span className="w-0.5 h-5 bg-primary rounded-full animate-pulse" style={{ animationDelay: "100ms" }} />
+                    <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: "250ms" }} />
+                  </div>
+                )}
               </div>
             )}
 
