@@ -1,4 +1,4 @@
-import { Home, Video, Users, Phone, MessageCircle, User, Search, PlusCircle, Radio, Settings, Compass, TrendingUp } from "lucide-react";
+import { Home, Video, Users, MessageCircle, User, Search, PlusCircle, Settings, Compass, TrendingUp } from "lucide-react";
 import { NavLink as RouterNavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
