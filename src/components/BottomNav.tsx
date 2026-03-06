@@ -1,4 +1,4 @@
-import { Home, Video, MessageCircle, User, Users, Phone } from "lucide-react";
+import { Home, Video, MessageCircle, User, Users, Briefcase } from "lucide-react";
 import { NavLink as RouterNavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -12,8 +12,8 @@ const navItems: NavItem[] = [
   { icon: Home, label: "Accueil", path: "/" },
   { icon: Video, label: "Vidéos", path: "/video" },
   { icon: Users, label: "Amis", path: "/friends" },
-  { icon: Phone, label: "Appels", path: "/calls" },
-  { icon: MessageCircle, label: "Messages", path: "/messages" },
+  { icon: MessageCircle, label: "Contact", path: "/contact" },
+  { icon: Briefcase, label: "Emploi", path: "/emploi" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
 

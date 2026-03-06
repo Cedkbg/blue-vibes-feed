@@ -286,37 +286,19 @@ export const DiscoverSidebar = ({ onNavigate }: DiscoverSidebarProps) => {
         </CardContent>
       </Card>
 
-      {/* Student Mode Banner */}
+      {/* Emploi Banner */}
       <Card
-        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-3"
-        onClick={() => { onNavigate(); navigate("/student"); }}
+        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
+        onClick={() => { onNavigate(); navigate("/emploi"); }}
       >
         <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-4 flex items-center gap-3">
+          <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-slate-700 p-4 flex items-center gap-3">
             <div className="bg-white/20 rounded-full p-2">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-white text-sm">🎓 Mode Étudiant</h3>
-              <p className="text-white/80 text-[10px]">Portfolio, CV & réseau campus</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Business Mode Banner */}
-      <Card
-        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] mb-4"
-        onClick={() => { onNavigate(); navigate("/business"); }}
-      >
-        <CardContent className="p-0">
-          <div className="bg-gradient-to-r from-slate-700 via-zinc-700 to-neutral-800 p-4 flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-white text-sm">💼 Mode Entreprise</h3>
-              <p className="text-white/80 text-[10px]">Emploi, recrutement & pages pro</p>
+              <h3 className="font-bold text-white text-sm">💼 Emploi</h3>
+              <p className="text-white/80 text-[10px]">Étudiant, entreprise & recrutement</p>
             </div>
           </div>
         </CardContent>
