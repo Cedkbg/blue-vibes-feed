@@ -477,6 +477,57 @@ export type Database = {
           },
         ]
       }
+      company_pages: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          followers_count: number
+          founded_year: number | null
+          id: string
+          industry: string | null
+          location: string | null
+          logo_url: string | null
+          name: string
+          owner_id: string
+          size: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          followers_count?: number
+          founded_year?: number | null
+          id?: string
+          industry?: string | null
+          location?: string | null
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          size?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          followers_count?: number
+          founded_year?: number | null
+          id?: string
+          industry?: string | null
+          location?: string | null
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          size?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       contact_group_members: {
         Row: {
           added_at: string
@@ -874,6 +925,106 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      job_applications: {
+        Row: {
+          applicant_id: string
+          cover_letter: string | null
+          created_at: string
+          cv_url: string | null
+          id: string
+          job_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          cover_letter?: string | null
+          created_at?: string
+          cv_url?: string | null
+          id?: string
+          job_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          cover_letter?: string | null
+          created_at?: string
+          cv_url?: string | null
+          id?: string
+          job_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_listings: {
+        Row: {
+          applications_count: number
+          company_id: string
+          created_at: string
+          description: string
+          experience_level: string | null
+          id: string
+          is_active: boolean
+          job_type: string
+          location: string | null
+          poster_id: string
+          salary_range: string | null
+          skills_required: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applications_count?: number
+          company_id: string
+          created_at?: string
+          description: string
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean
+          job_type?: string
+          location?: string | null
+          poster_id: string
+          salary_range?: string | null
+          skills_required?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applications_count?: number
+          company_id?: string
+          created_at?: string
+          description?: string
+          experience_level?: string | null
+          id?: string
+          is_active?: boolean
+          job_type?: string
+          location?: string | null
+          poster_id?: string
+          salary_range?: string | null
+          skills_required?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_listings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_pages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       likes: {
         Row: {
@@ -1437,6 +1588,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          cv_url: string | null
+          field_of_study: string | null
+          github_url: string | null
+          gpa: string | null
+          graduation_year: number | null
+          id: string
+          linkedin_url: string | null
+          looking_for: string | null
+          portfolio_url: string | null
+          skills: string[] | null
+          university: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          cv_url?: string | null
+          field_of_study?: string | null
+          github_url?: string | null
+          gpa?: string | null
+          graduation_year?: number | null
+          id?: string
+          linkedin_url?: string | null
+          looking_for?: string | null
+          portfolio_url?: string | null
+          skills?: string[] | null
+          university?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          cv_url?: string | null
+          field_of_study?: string | null
+          github_url?: string | null
+          gpa?: string | null
+          graduation_year?: number | null
+          id?: string
+          linkedin_url?: string | null
+          looking_for?: string | null
+          portfolio_url?: string | null
+          skills?: string[] | null
+          university?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_interests: {
         Row: {

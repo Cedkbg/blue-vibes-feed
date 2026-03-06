@@ -33,6 +33,8 @@ import Trending from "./pages/Trending";
 import PostDetail from "./pages/PostDetail";
 import UserProfile from "./pages/UserProfile";
 import Certified from "./pages/Certified";
+import StudentMode from "./pages/StudentMode";
+import BusinessMode from "./pages/BusinessMode";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
 
@@ -71,6 +73,8 @@ const AppContent = () => {
         <Route path="/creneau" element={<ProtectedRoute><Creneau /></ProtectedRoute>} />
         <Route path="/trending" element={<ProtectedRoute><Trending /></ProtectedRoute>} />
         <Route path="/certified" element={<ProtectedRoute><Certified /></ProtectedRoute>} />
+        <Route path="/student" element={<ProtectedRoute><StudentMode /></ProtectedRoute>} />
+        <Route path="/business" element={<ProtectedRoute><BusinessMode /></ProtectedRoute>} />
         {/* Public shareable routes – no auth required */}
         <Route path="/p/:postId" element={<PostDetail />} />
         <Route path="/u/:username" element={<UserProfile />} />
