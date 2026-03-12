@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Grid, Video, ArrowLeft, LogOut, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, BarChart3, Clock, Lock, Share2, MapPin, Briefcase, Link2, Globe, BadgeCheck, Pencil } from "lucide-react";
+import { Settings, Grid, Video, ArrowLeft, Bookmark, UserPlus, UserCheck, Heart, Eye, MessageCircle, Clock, Lock, Share2, MapPin, Briefcase, Link2, Globe, BadgeCheck, Pencil, Camera } from "lucide-react";
 import { FollowersModal } from "@/components/FollowersModal";
 import { LikersModal } from "@/components/LikersModal";
 import { Button } from "@/components/ui/button";
@@ -59,18 +59,14 @@ const Profile = () => {
   const { isFollowing, toggleFollow, isLoading: isFollowLoading, followersCount, followingCount, requestStatus } = useFollows(viewingUserId);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
 
   useEffect(() => {
     if (viewingUserId) {
       fetchProfile();
       fetchPosts();
-      if (isOwnProfile) {
-        fetchFavorites();
-      }
+      if (isOwnProfile) fetchFavorites();
     }
   }, [viewingUserId, isOwnProfile]);
 
@@ -78,16 +74,8 @@ const Profile = () => {
     const recordVisit = async () => {
       if (!user || !viewingUserId || isOwnProfile) return;
       try {
-        await (supabase as any).from("profile_visits").insert({
-          profile_id: viewingUserId,
-          visitor_id: user.id,
-        });
-        await supabase.from("notifications").insert({
-          user_id: viewingUserId,
-          type: "profile_visit",
-          content: "a consulté votre profil",
-          from_user_id: user.id,
-        });
+        await (supabase as any).from("profile_visits").insert({ profile_id: viewingUserId, visitor_id: user.id });
+        await supabase.from("notifications").insert({ user_id: viewingUserId, type: "profile_visit", content: "a consulté votre profil", from_user_id: user.id });
       } catch (e) {}
     };
     recordVisit();
@@ -100,71 +88,37 @@ const Profile = () => {
       .select("username, display_name, bio, avatar_url, external_link, is_private, is_verified, language, profession, location")
       .eq("id", viewingUserId)
       .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching profile:", error);
-      toast.error("Erreur lors du chargement du profil");
-    } else {
-      setProfile(data);
-    }
+    if (error) { toast.error("Erreur lors du chargement du profil"); }
+    else { setProfile(data); }
     setLoadingProfile(false);
   };
 
   const fetchPosts = async () => {
     if (!viewingUserId) return;
-    const { data, error } = await supabase
-      .from("posts")
-      .select("id, media_url, media_type, likes_count, comments_count")
-      .eq("user_id", viewingUserId)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
+    const { data } = await supabase.from("posts").select("id, media_url, media_type, likes_count, comments_count").eq("user_id", viewingUserId).order("created_at", { ascending: false });
+    if (data) {
       setPosts(data.filter(p => p.media_type === "image" || !p.media_type));
       setVideos(data.filter(p => p.media_type === "video"));
       setTotalLikes(data.reduce((sum, p) => sum + (p.likes_count || 0), 0));
       setTotalComments(data.reduce((sum, p) => sum + (p.comments_count || 0), 0));
     }
-
-    const { data: storiesData } = await supabase
-      .from("stories")
-      .select("views_count")
-      .eq("user_id", viewingUserId);
-    
-    if (storiesData) {
-      setTotalViews(storiesData.reduce((sum, s) => sum + (s.views_count || 0), 0));
-    }
+    const { data: storiesData } = await supabase.from("stories").select("views_count").eq("user_id", viewingUserId);
+    if (storiesData) setTotalViews(storiesData.reduce((sum, s) => sum + (s.views_count || 0), 0));
   };
 
   const fetchFavorites = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("favorites")
-      .select(`id, post_id, post:posts(id, media_url, media_type, likes_count)`)
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      const validFavorites = data
-        .filter((f: any) => f.post)
-        .map((f: any) => f.post as Post);
-      setFavorites(validFavorites);
+    const { data } = await supabase.from("favorites").select(`id, post_id, post:posts(id, media_url, media_type, likes_count)`).eq("user_id", user.id).order("created_at", { ascending: false });
+    if (data) {
+      setFavorites(data.filter((f: any) => f.post).map((f: any) => f.post as Post));
     }
   };
 
   const handleShareProfile = async () => {
     const username = profile?.username;
-    const shareUrl = username
-      ? `${window.location.origin}/u/${username}`
-      : `${window.location.origin}/profile/${viewingUserId}`;
-    const shareText = `${profile?.display_name || profile?.username || "Profil"} sur CedLite`;
-
+    const shareUrl = username ? `${window.location.origin}/u/${username}` : `${window.location.origin}/profile/${viewingUserId}`;
     if (navigator.share) {
-      try {
-        await navigator.share({ title: shareText, url: shareUrl });
-        return;
-      } catch (e) {
-        if ((e as Error).name === "AbortError") return;
-      }
+      try { await navigator.share({ title: `${profile?.display_name || "Profil"} sur CedLite`, url: shareUrl }); return; } catch (e) { if ((e as Error).name === "AbortError") return; }
     }
     navigator.clipboard.writeText(shareUrl);
     toast.success("Lien copié !");
@@ -172,20 +126,13 @@ const Profile = () => {
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Erreur lors de la déconnexion");
-    } else {
-      toast.success("Déconnecté avec succès");
-      navigate("/auth");
-    }
+    if (error) toast.error("Erreur lors de la déconnexion");
+    else { toast.success("Déconnecté"); navigate("/auth"); }
   };
 
   const handlePostClick = (postId: string, mediaType?: string | null) => {
-    if (mediaType === "video") {
-      navigate(`/video?id=${postId}`);
-    } else {
-      navigate(`/?highlight=${postId}`);
-    }
+    if (mediaType === "video") navigate(`/video?id=${postId}`);
+    else navigate(`/?highlight=${postId}`);
   };
 
   if (loading || loadingProfile) {
@@ -203,345 +150,254 @@ const Profile = () => {
 
   return (
     <DesktopLayout showRightSidebar={false} showTopBar={false}>
-      {/* LinkedIn-style Cover Banner */}
+      {/* Compact cover — LinkedIn-style */}
       <div className="relative">
-        <div className="h-36 sm:h-48 bg-gradient-to-r from-primary via-primary/80 to-primary/60 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-0 w-40 h-40 bg-primary-foreground/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute bottom-0 right-0 w-60 h-60 bg-primary-foreground/10 rounded-full translate-x-1/3 translate-y-1/3" />
-            <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-primary-foreground/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-          </div>
+        <div className="h-28 sm:h-36 bg-gradient-to-r from-primary/80 via-accent/50 to-primary/40 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjEwIiBjeT0iMTAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')] opacity-60" />
         </div>
 
-        {/* Top actions over banner */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+        {/* Top actions */}
+        <div className="absolute top-3 left-3 right-3 flex justify-between items-center">
+          <div>
             {!isOwnProfile && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="w-5 h-5" />
+              <Button size="icon" variant="ghost" className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full h-8 w-8" onClick={() => navigate(-1)}>
+                <ArrowLeft className="w-4 h-4" />
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full"
-              onClick={handleShareProfile}
-            >
-              <Share2 className="w-5 h-5" />
+          <div className="flex items-center gap-1.5">
+            <Button size="icon" variant="ghost" className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full h-8 w-8" onClick={handleShareProfile}>
+              <Share2 className="w-4 h-4" />
             </Button>
             {isOwnProfile && (
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full"
-                onClick={() => navigate("/settings")}
-              >
-                <Settings className="w-5 h-5" />
+              <Button size="icon" variant="ghost" className="text-primary-foreground bg-black/20 backdrop-blur-sm hover:bg-black/30 rounded-full h-8 w-8" onClick={() => navigate("/settings")}>
+                <Settings className="w-4 h-4" />
               </Button>
             )}
           </div>
         </div>
 
-        {/* Avatar overlapping banner */}
-        <div className="absolute -bottom-16 left-4 sm:left-6">
-          <Avatar className="w-32 h-32 ring-4 ring-background shadow-lg">
+        {/* Avatar — overlapping */}
+        <div className="absolute -bottom-12 left-4 sm:left-6">
+          <Avatar className="w-24 h-24 ring-[3px] ring-background shadow-md">
             <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.username || "User"} />
-            <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-              {profile?.username?.[0]?.toUpperCase() || profile?.display_name?.[0]?.toUpperCase() || "U"}
+            <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+              {profile?.username?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
         </div>
       </div>
 
-      {/* Profile Info - LinkedIn style */}
-      <div className="pt-20 px-4 sm:px-6 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-foreground">
+      {/* Profile info */}
+      <div className="pt-14 px-4 sm:px-6 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xl font-bold text-foreground truncate">
                 {profile?.display_name || profile?.username || "Utilisateur"}
               </h1>
-              {profile?.is_verified && (
-                <BadgeCheck className="w-6 h-6 text-primary flex-shrink-0" />
-              )}
-              {profile?.is_private && (
-                <Lock className="w-4 h-4 text-muted-foreground" />
-              )}
+              {profile?.is_verified && <BadgeCheck className="w-5 h-5 text-primary flex-shrink-0" />}
+              {profile?.is_private && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
-            <p className="text-muted-foreground text-sm">@{profile?.username || "user"}</p>
-            
-            {/* Professional info */}
-            {profile?.profession && (
-              <div className="flex items-center gap-2 mt-2 text-foreground">
-                <Briefcase className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{profile.profession}</span>
-              </div>
-            )}
-            {profile?.location && (
-              <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{profile.location}</span>
-              </div>
-            )}
-            {profile?.external_link && (
-              <a 
-                href={profile.external_link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 mt-1 text-primary hover:underline"
-              >
-                <Link2 className="w-4 h-4" />
-                <span className="text-sm truncate max-w-xs">{profile.external_link.replace(/^https?:\/\//, '')}</span>
-              </a>
-            )}
-            {profile?.language && (
-              <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                <Globe className="w-4 h-4" />
-                <span className="text-sm">{profile.language}</span>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">@{profile?.username || "user"}</p>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2 sm:mt-0">
+          {/* Action buttons — compact */}
+          <div className="flex gap-1.5 mt-1">
             {isOwnProfile ? (
               <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="rounded-full gap-2">
-                    <Pencil className="w-4 h-4" />
-                    Modifier le profil
+                  <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-xs h-8">
+                    <Pencil className="w-3.5 h-3.5" />
+                    Modifier
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-                  <EditProfileSheet 
-                    profile={profile} 
-                    userId={user?.id || ""} 
-                    onUpdate={() => fetchProfile()}
-                    onClose={() => setIsEditOpen(false)}
-                  />
+                  <EditProfileSheet profile={profile} userId={user?.id || ""} onUpdate={() => fetchProfile()} onClose={() => setIsEditOpen(false)} />
                 </SheetContent>
               </Sheet>
             ) : (
               <>
-                <Button 
-                  className={`rounded-full gap-2 ${isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : requestStatus === "pending" ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
+                <Button
+                  size="sm"
+                  className={`rounded-full gap-1.5 text-xs h-8 ${isFollowing || requestStatus === "pending" ? "bg-muted text-foreground hover:bg-muted/80" : ""}`}
                   onClick={toggleFollow}
                   disabled={isFollowLoading}
                 >
-                  {isFollowing ? (
-                    <><UserCheck className="w-4 h-4" /> Abonné</>
-                  ) : requestStatus === "pending" ? (
-                    <><Clock className="w-4 h-4" /> En attente</>
-                  ) : (
-                    <><UserPlus className="w-4 h-4" /> S'abonner</>
-                  )}
+                  {isFollowing ? <><UserCheck className="w-3.5 h-3.5" /> Abonné</> : requestStatus === "pending" ? <><Clock className="w-3.5 h-3.5" /> En attente</> : <><UserPlus className="w-3.5 h-3.5" /> S'abonner</>}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="rounded-full"
-                  onClick={() => navigate(`/chat/${viewingUserId}`)}
-                >
-                  <MessageCircle className="w-4 h-4" />
+                <Button variant="outline" size="sm" className="rounded-full h-8 w-8 p-0" onClick={() => navigate(`/chat/${viewingUserId}`)}>
+                  <MessageCircle className="w-3.5 h-3.5" />
                 </Button>
               </>
             )}
           </div>
         </div>
 
+        {/* Professional details — compact row */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-xs text-muted-foreground">
+          {profile?.profession && (
+            <span className="flex items-center gap-1">
+              <Briefcase className="w-3.5 h-3.5" /> {profile.profession}
+            </span>
+          )}
+          {profile?.location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" /> {profile.location}
+            </span>
+          )}
+          {profile?.language && (
+            <span className="flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5" /> {profile.language}
+            </span>
+          )}
+          {profile?.external_link && (
+            <a href={profile.external_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+              <Link2 className="w-3.5 h-3.5" /> {profile.external_link.replace(/^https?:\/\//, '').split('/')[0]}
+            </a>
+          )}
+        </div>
+
         {/* Bio */}
         {profile?.bio && (
-          <p className="text-foreground mt-4 whitespace-pre-line text-sm leading-relaxed">{profile.bio}</p>
+          <p className="text-sm text-foreground mt-2.5 whitespace-pre-line leading-relaxed">{profile.bio}</p>
         )}
 
-        {/* Stats bar - LinkedIn style */}
-        <div className="flex items-center gap-6 mt-5 py-4 border-y border-border">
-          <button
-            className="flex items-center gap-1.5 hover:text-primary transition-colors"
-            onClick={() => { setFollowersTab("followers"); setShowFollowers(true); }}
-          >
-            <span className="text-lg font-bold text-foreground">{followersCount}</span>
-            <span className="text-sm text-muted-foreground">abonnés</span>
+        {/* Stats row — LinkedIn-style inline */}
+        <div className="flex items-center gap-5 mt-4 text-sm">
+          <button className="hover:text-primary transition-colors" onClick={() => { setFollowersTab("followers"); setShowFollowers(true); }}>
+            <span className="font-bold text-foreground">{followersCount}</span> <span className="text-muted-foreground">abonnés</span>
           </button>
-          <button
-            className="flex items-center gap-1.5 hover:text-primary transition-colors"
-            onClick={() => { setFollowersTab("following"); setShowFollowers(true); }}
-          >
-            <span className="text-lg font-bold text-foreground">{followingCount}</span>
-            <span className="text-sm text-muted-foreground">abonnements</span>
+          <button className="hover:text-primary transition-colors" onClick={() => { setFollowersTab("following"); setShowFollowers(true); }}>
+            <span className="font-bold text-foreground">{followingCount}</span> <span className="text-muted-foreground">abonnements</span>
           </button>
-          <button
-            className="flex items-center gap-1.5 hover:text-primary transition-colors"
-            onClick={() => setShowLikers(true)}
-          >
-            <span className="text-lg font-bold text-foreground">{totalLikes}</span>
-            <span className="text-sm text-muted-foreground">j'aime</span>
+          <button className="hover:text-primary transition-colors" onClick={() => setShowLikers(true)}>
+            <span className="font-bold text-foreground">{totalPosts}</span> <span className="text-muted-foreground">posts</span>
           </button>
         </div>
 
-        {/* Activity summary - LinkedIn style */}
-        <div className="mt-4 grid grid-cols-4 gap-3">
-          <div className="text-center p-3 bg-card rounded-xl border border-border">
-            <Grid className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold text-foreground">{totalPosts}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Posts</p>
+        {/* Compact activity cards */}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          <div className="text-center py-2 px-1 rounded-lg bg-muted/50">
+            <p className="text-sm font-bold text-foreground">{totalPosts}</p>
+            <p className="text-[10px] text-muted-foreground">Posts</p>
           </div>
-          <div className="text-center p-3 bg-card rounded-xl border border-border">
-            <Heart className="w-5 h-5 mx-auto text-destructive mb-1" />
-            <p className="text-lg font-bold text-foreground">{totalLikes}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Likes</p>
+          <div className="text-center py-2 px-1 rounded-lg bg-muted/50">
+            <p className="text-sm font-bold text-foreground">{totalLikes}</p>
+            <p className="text-[10px] text-muted-foreground">Likes</p>
           </div>
-          <div className="text-center p-3 bg-card rounded-xl border border-border">
-            <MessageCircle className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-lg font-bold text-foreground">{totalComments}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Commentaires</p>
+          <div className="text-center py-2 px-1 rounded-lg bg-muted/50">
+            <p className="text-sm font-bold text-foreground">{totalComments}</p>
+            <p className="text-[10px] text-muted-foreground">Commentaires</p>
           </div>
-          <div className="text-center p-3 bg-card rounded-xl border border-border">
-            <Eye className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-            <p className="text-lg font-bold text-foreground">{totalViews}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vues</p>
+          <div className="text-center py-2 px-1 rounded-lg bg-muted/50">
+            <p className="text-sm font-bold text-foreground">{totalViews}</p>
+            <p className="text-[10px] text-muted-foreground">Vues</p>
           </div>
         </div>
       </div>
 
+      {/* Separator */}
+      <div className="border-t border-border" />
+
       {/* Content Tabs */}
       {!isOwnProfile && profile?.is_private && !isFollowing ? (
         <div className="text-center py-16 px-4">
-          <Lock className="w-16 h-16 mx-auto text-muted-foreground mb-4 opacity-50" />
-          <h3 className="text-lg font-semibold mb-2">Ce compte est privé</h3>
-          <p className="text-muted-foreground text-sm">
-            Abonnez-vous à ce compte pour voir ses publications.
-          </p>
+          <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-3 opacity-40" />
+          <h3 className="text-base font-semibold mb-1">Compte privé</h3>
+          <p className="text-muted-foreground text-sm">Abonnez-vous pour voir les publications.</p>
         </div>
       ) : (
-      <Tabs defaultValue="posts" className="px-4 sm:px-6 pb-24">
-        <TabsList className={`w-full grid mb-4 ${isOwnProfile ? "grid-cols-3" : "grid-cols-2"}`}>
-          <TabsTrigger value="posts" className="flex items-center gap-2">
-            <Grid className="w-4 h-4" />
-            Posts
-          </TabsTrigger>
-          <TabsTrigger value="videos" className="flex items-center gap-2">
-            <Video className="w-4 h-4" />
-            Vidéos
-          </TabsTrigger>
-          {isOwnProfile && (
-            <TabsTrigger value="favorites" className="flex items-center gap-2">
-              <Bookmark className="w-4 h-4" />
-              Favoris
+        <Tabs defaultValue="posts" className="px-4 sm:px-6 pb-24">
+          <TabsList className={`w-full grid mb-4 ${isOwnProfile ? "grid-cols-3" : "grid-cols-2"} h-10`}>
+            <TabsTrigger value="posts" className="flex items-center gap-1.5 text-xs">
+              <Grid className="w-4 h-4" /> Posts
             </TabsTrigger>
-          )}
-        </TabsList>
+            <TabsTrigger value="videos" className="flex items-center gap-1.5 text-xs">
+              <Video className="w-4 h-4" /> Vidéos
+            </TabsTrigger>
+            {isOwnProfile && (
+              <TabsTrigger value="favorites" className="flex items-center gap-1.5 text-xs">
+                <Bookmark className="w-4 h-4" /> Favoris
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        <TabsContent value="posts" className="mt-0">
-          {posts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Grid className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Aucun post pour le moment</p>
-              {isOwnProfile && <p className="text-sm mt-2">Partagez votre premier contenu !</p>}
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1">
-              {posts.map((post) => (
-                <div 
-                  key={post.id} 
-                  className="aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer group relative"
-                  onClick={() => handlePostClick(post.id, post.media_type)}
-                >
-                  {post.media_url && (
-                    <img src={post.media_url} alt="" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="flex items-center gap-4 text-white text-sm font-medium">
-                      <span className="flex items-center gap-1"><Heart className="w-4 h-4" />{post.likes_count}</span>
-                      <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" />{post.comments_count}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="videos">
-          {videos.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Video className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Aucune vidéo pour le moment</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1">
-              {videos.map((video) => (
-                <div 
-                  key={video.id} 
-                  className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
-                  onClick={() => handlePostClick(video.id, "video")}
-                >
-                  {video.media_url && (
-                    <video src={video.media_url} className="w-full h-full object-cover" muted />
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <Video className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {isOwnProfile && (
-          <TabsContent value="favorites">
-            {favorites.length === 0 ? (
+          <TabsContent value="posts" className="mt-0">
+            {posts.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Bookmark className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Aucun favori pour le moment</p>
-                <p className="text-sm mt-2">Enregistrez des vidéos pour les retrouver ici !</p>
+                <Grid className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Aucun post</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-1">
-                {favorites.map((fav) => (
-                  <div 
-                    key={fav.id} 
-                    className="aspect-[9/16] bg-muted rounded-lg overflow-hidden cursor-pointer relative"
-                    onClick={() => handlePostClick(fav.id, fav.media_type)}
-                  >
-                    {fav.media_url && (
-                      fav.media_type === "video" ? (
-                        <video src={fav.media_url} className="w-full h-full object-cover" muted />
-                      ) : (
-                        <img src={fav.media_url} alt="" className="w-full h-full object-cover" />
-                      )
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <Bookmark className="w-4 h-4 text-white fill-white" />
+              <div className="grid grid-cols-3 gap-0.5">
+                {posts.map((post) => (
+                  <div key={post.id} className="aspect-square bg-muted overflow-hidden cursor-pointer group relative" onClick={() => handlePostClick(post.id, post.media_type)}>
+                    {post.media_url && <img src={post.media_url} alt="" className="w-full h-full object-cover" />}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="flex items-center gap-3 text-white text-xs font-medium">
+                        <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" />{post.likes_count}</span>
+                        <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" />{post.comments_count}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </TabsContent>
-        )}
-      </Tabs>
+
+          <TabsContent value="videos">
+            {videos.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Video className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Aucune vidéo</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-0.5">
+                {videos.map((video) => (
+                  <div key={video.id} className="aspect-[9/16] bg-muted overflow-hidden cursor-pointer relative" onClick={() => handlePostClick(video.id, "video")}>
+                    {video.media_url && <video src={video.media_url} className="w-full h-full object-cover" muted />}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <Video className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {isOwnProfile && (
+            <TabsContent value="favorites">
+              {favorites.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Bookmark className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="text-sm">Aucun favori</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-0.5">
+                  {favorites.map((fav) => (
+                    <div key={fav.id} className="aspect-[9/16] bg-muted overflow-hidden cursor-pointer relative" onClick={() => handlePostClick(fav.id, fav.media_type)}>
+                      {fav.media_url && (
+                        fav.media_type === "video" ? (
+                          <video src={fav.media_url} className="w-full h-full object-cover" muted />
+                        ) : (
+                          <img src={fav.media_url} alt="" className="w-full h-full object-cover" />
+                        )
+                      )}
+                      <div className="absolute top-1.5 right-1.5">
+                        <Bookmark className="w-3.5 h-3.5 text-white fill-white" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
       )}
 
-      <FollowersModal
-        open={showFollowers}
-        onOpenChange={setShowFollowers}
-        userId={viewingUserId || ""}
-        defaultTab={followersTab}
-      />
-
-      <LikersModal
-        open={showLikers}
-        onOpenChange={setShowLikers}
-        userId={viewingUserId || ""}
-      />
-
+      <FollowersModal open={showFollowers} onOpenChange={setShowFollowers} userId={viewingUserId || ""} defaultTab={followersTab} />
+      <LikersModal open={showLikers} onOpenChange={setShowLikers} userId={viewingUserId || ""} />
     </DesktopLayout>
   );
 };
