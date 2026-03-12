@@ -27,7 +27,7 @@ export const useWorldNews = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("general");
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchNews = useCallback(async (category: string, query?: string, silent = false) => {
     if (!silent) setLoading(true);

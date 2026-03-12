@@ -63,7 +63,7 @@ export const playNotificationSound = () => {
 };
 
 // Ringtone - repeating melodic pattern
-let ringtoneInterval: NodeJS.Timeout | null = null;
+let ringtoneInterval: ReturnType<typeof setInterval> | null = null;
 let ringtoneActive = false;
 
 const playRingtonePattern = () => {
@@ -93,7 +93,7 @@ export const stopRingtone = () => {
 };
 
 // Outgoing call sound - repeating "ring ring"
-let outgoingInterval: NodeJS.Timeout | null = null;
+let outgoingInterval: ReturnType<typeof setInterval> | null = null;
 let outgoingActive = false;
 
 const playOutgoingPattern = () => {

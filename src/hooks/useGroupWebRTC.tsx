@@ -49,7 +49,7 @@ export const useGroupWebRTC = ({ groupId, callType, onCallEnded }: UseGroupWebRT
   
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const signalChannelRef = useRef<any>(null);
   const hasJoinedRef = useRef(false);
 
