@@ -17,7 +17,7 @@ export const useIncomingCall = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopRingtoneAndTimer = useCallback(() => {
     stopRingtoneSound();

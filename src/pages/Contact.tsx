@@ -73,7 +73,7 @@ const Contact = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [userSearch, setUserSearch] = useState("");
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // === Calls state ===
   const { callHistory, loading: callsLoading } = useCallHistory();

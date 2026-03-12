@@ -93,7 +93,7 @@ export const stopRingtone = () => {
 };
 
 // Outgoing call sound - repeating "ring ring"
-let outgoingInterval: NodeJS.Timeout | null = null;
+let outgoingInterval: ReturnType<typeof setInterval> | null = null;
 let outgoingActive = false;
 
 const playOutgoingPattern = () => {
