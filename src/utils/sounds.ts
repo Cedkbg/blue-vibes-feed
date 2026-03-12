@@ -63,7 +63,7 @@ export const playNotificationSound = () => {
 };
 
 // Ringtone - repeating melodic pattern
-let ringtoneInterval: NodeJS.Timeout | null = null;
+let ringtoneInterval: ReturnType<typeof setInterval> | null = null;
 let ringtoneActive = false;
 
 const playRingtonePattern = () => {
