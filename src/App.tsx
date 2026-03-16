@@ -82,6 +82,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       
+      <PWAInstallPrompt />
       {incomingCall && (
         <IncomingCallModal
           isOpen={true}

@@ -133,10 +133,10 @@ const Profile = () => {
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 5 Mo"); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => setCoverUrl(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    if (file.size > 10 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 10 Mo"); return; }
+    // Use object URL for full quality instead of base64
+    const url = URL.createObjectURL(file);
+    setCoverUrl(url);
     toast.success("Photo de couverture mise à jour");
   };
 
