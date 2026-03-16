@@ -162,7 +162,7 @@ const Profile = () => {
         <div className="relative group">
           <div className="h-32 sm:h-48 md:h-56 bg-gradient-to-r from-primary/60 via-accent/40 to-primary/30 rounded-b-xl overflow-hidden">
             {coverUrl ? (
-              <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+              <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" style={{ imageRendering: "auto" }} loading="eager" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/50 via-accent/30 to-muted/40 relative">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjEwIiBjeT0iMTAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wOCkiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')] opacity-60" />
