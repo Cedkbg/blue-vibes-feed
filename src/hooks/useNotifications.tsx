@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { playNotificationSound } from "@/utils/sounds";
+import { requestNotificationPermission, showBrowserNotification, getNotificationTitle } from "@/utils/browserNotifications";
 
 export interface Notification {
   id: string;
@@ -33,6 +34,9 @@ export const useNotifications = () => {
       setLoading(false);
       return;
     }
+
+    // Request permission on mount
+    requestNotificationPermission();
 
     let retryCount = 0;
     const maxRetries = 3;
@@ -121,6 +125,17 @@ export const useNotifications = () => {
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
           playNotificationSound();
+
+          // Show browser notification
+          const fromName = newNotification.from_profile?.display_name || newNotification.from_profile?.username || "";
+          showBrowserNotification(
+            getNotificationTitle(newNotification.type),
+            {
+              body: fromName ? `${fromName}: ${newNotification.content}` : newNotification.content,
+              icon: newNotification.from_profile?.avatar_url || "/pwa-192x192.png",
+              tag: `notif-${newNotification.id}`,
+            }
+          );
         }
       )
       .on(

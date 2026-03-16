@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { startRingtone, stopRingtone as stopRingtoneSound } from "@/utils/sounds";
+import { showBrowserNotification } from "@/utils/browserNotifications";
 
 interface IncomingCall {
   id: string;
@@ -81,6 +82,18 @@ export const useIncomingCall = () => {
 
           startRingtone();
 
+          // Browser notification for incoming call
+          const callerDisplayName = profile?.display_name || profile?.username || "Quelqu'un";
+          showBrowserNotification(
+            signal.call_type === "video" ? "📹 Appel vidéo entrant" : "📞 Appel audio entrant",
+            {
+              body: `${callerDisplayName} vous appelle...`,
+              icon: profile?.avatar_url || "/pwa-192x192.png",
+              tag: "incoming-call",
+              requireInteraction: true,
+              onClick: () => window.focus(),
+            }
+          );
           timeoutRef.current = setTimeout(() => {
             stopRingtoneAndTimer();
             setIncomingCall(null);
