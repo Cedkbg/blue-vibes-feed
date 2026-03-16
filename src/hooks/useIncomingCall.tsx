@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { startRingtone, stopRingtone as stopRingtoneSound } from "@/utils/sounds";
+import { showBrowserNotification } from "@/utils/browserNotifications";
 
 interface IncomingCall {
   id: string;
