@@ -35,6 +35,9 @@ export const useNotifications = () => {
       return;
     }
 
+    // Request permission on mount
+    requestNotificationPermission();
+
     let retryCount = 0;
     const maxRetries = 3;
 
