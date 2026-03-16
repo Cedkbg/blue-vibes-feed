@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { playNotificationSound } from "@/utils/sounds";
+import { requestNotificationPermission, showBrowserNotification, getNotificationTitle } from "@/utils/browserNotifications";
 
 export interface Notification {
   id: string;
