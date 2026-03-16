@@ -61,12 +61,12 @@ export const EditProfileSheet = ({ profile, userId, onUpdate, onClose }: EditPro
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { toast.error("Veuillez sélectionner une image"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 5 Mo"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 10 Mo"); return; }
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => setAvatarUrl(event.target?.result as string);
-      reader.readAsDataURL(file);
+      // Use object URL for full quality display
+      const url = URL.createObjectURL(file);
+      setAvatarUrl(url);
       toast.success("Photo mise à jour");
     } catch (error) {
       toast.error("Erreur lors du téléchargement de la photo");
