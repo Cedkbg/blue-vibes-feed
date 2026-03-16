@@ -35,6 +35,7 @@ import Certified from "./pages/Certified";
 import Emploi from "./pages/Emploi";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import { useIncomingCall } from "@/hooks/useIncomingCall";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
