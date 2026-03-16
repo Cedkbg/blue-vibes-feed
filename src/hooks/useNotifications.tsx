@@ -125,6 +125,17 @@ export const useNotifications = () => {
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
           playNotificationSound();
+
+          // Show browser notification
+          const fromName = newNotification.from_profile?.display_name || newNotification.from_profile?.username || "";
+          showBrowserNotification(
+            getNotificationTitle(newNotification.type),
+            {
+              body: fromName ? `${fromName}: ${newNotification.content}` : newNotification.content,
+              icon: newNotification.from_profile?.avatar_url || "/pwa-192x192.png",
+              tag: `notif-${newNotification.id}`,
+            }
+          );
         }
       )
       .on(
