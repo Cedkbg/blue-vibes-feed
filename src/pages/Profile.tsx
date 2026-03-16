@@ -199,7 +199,7 @@ const Profile = () => {
           <div className="absolute -bottom-16 left-5 sm:left-8">
             <div className="relative">
               <Avatar className="w-32 h-32 ring-4 ring-background shadow-lg">
-                <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
+                <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} className="object-cover" style={{ imageRendering: "auto" }} />
                 <AvatarFallback className="text-3xl bg-primary/10 text-primary font-bold">
                   {profile?.username?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
